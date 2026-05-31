@@ -7,9 +7,9 @@ namespace API.Controllers
     [ApiExplorerSettings(IgnoreApi = true)]
     public class ErrorController : BaseApiController
     {
-        public IActionResult Error (int code)
+        public IActionResult Error(int code)
         {
-            return new ObjectResult(new ApiResponse(code));
+            return new ObjectResult(new ApiResponse(code)) { StatusCode = code };
         }
     }
 }
