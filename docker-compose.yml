@@ -1,0 +1,24 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: API/Dockerfile
+    ports:
+      - "5000:80"
+    volumes:
+      - skinet-data:/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:80
+
+  client:
+    build:
+      context: client
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+
+volumes:
+  skinet-data:

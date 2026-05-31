@@ -1,0 +1,65 @@
+### =======================================
+### SkiNet API Tests (REST Client)
+### =======================================
+
+@baseUrl = http://localhost:5000
+
+### ---------- Products ----------
+
+### List all products (default pagination)
+GET {{baseUrl}}/api/products
+
+### List products with small page size
+GET {{baseUrl}}/api/products?pageSize=2
+
+### List products sorted by price ascending
+GET {{baseUrl}}/api/products?sort=priceAsc
+
+### List products sorted by price descending
+GET {{baseUrl}}/api/products?sort=priceDesc
+
+### Filter products by brand (e.g., brandId=1)
+GET {{baseUrl}}/api/products?brandId=1
+
+### Filter products by type (e.g., typeId=1)
+GET {{baseUrl}}/api/products?typeId=1
+
+### Search products by name
+GET {{baseUrl}}/api/products?search=board
+
+### Get single product by valid ID
+GET {{baseUrl}}/api/products/1
+
+### Get single product by invalid ID (should 404)
+GET {{baseUrl}}/api/products/9999
+
+### List all product brands
+GET {{baseUrl}}/api/products/brands
+
+### List all product types
+GET {{baseUrl}}/api/products/types
+
+### ---------- Buggy / Error Simulation ----------
+
+### Simulate 404 Not Found
+GET {{baseUrl}}/api/buggy/notfound
+
+### Simulate 500 Server Error (null reference)
+GET {{baseUrl}}/api/buggy/servererror
+
+### Simulate 400 Bad Request
+GET {{baseUrl}}/api/buggy/bagrequest
+
+### Buggy with valid ID
+GET {{baseUrl}}/api/buggy/bagrequest/42
+
+### ---------- Error Controller ----------
+
+### Get 404 error response
+GET {{baseUrl}}/errors/404
+
+### Get 400 error response
+GET {{baseUrl}}/errors/400
+
+### Get 500 error response
+GET {{baseUrl}}/errors/500
