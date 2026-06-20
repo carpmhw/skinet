@@ -11,7 +11,14 @@
   },
   "private": true,
   "overrides": {
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "webpack-dev-server": "5.2.5",
+    "hono": "4.12.26",
+    "launch-editor": "2.14.1",
+    "tar": "7.5.16",
+    "vite": "7.3.5",
+    "uuid": "11.1.1",
+    "js-yaml": "4.2.0"
   },
   "dependencies": {
     "@angular/animations": "^21.2.17",
@@ -34,7 +41,7 @@
     "zone.js": "~0.15.1"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^21.2.13",
+    "@angular-devkit/build-angular": "^21.2.16",
     "@angular/cli": "^21.2.13",
     "@angular/compiler-cli": "^21.2.17",
     "@eslint/js": "^10.0.1",
