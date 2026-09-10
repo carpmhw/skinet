@@ -13,7 +13,7 @@
   "overrides": {
     "esbuild": "0.28.1",
     "webpack-dev-server": "5.2.6",
-    "hono": "4.12.34",
+    "hono": "4.13.7",
     "less": "4.8.1",
     "@modelcontextprotocol/sdk": "1.30.0",
     "launch-editor": "2.14.1",
