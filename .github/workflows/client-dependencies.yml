@@ -1,0 +1,41 @@
+name: Client dependency validation
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'client/**'
+      - '.github/workflows/client-dependencies.yml'
+  push:
+    branches: [master, dev]
+    paths:
+      - 'client/**'
+      - '.github/workflows/client-dependencies.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  client-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build Angular application
+        run: npm run build
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
