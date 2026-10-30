@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="client/src/assets/images/logo.png" alt="SkiNet logo" width="260">
+  <img src="client/src/assets/images/logo.png" alt="SkiNet 標誌" width="260">
 </p>
 
 <h1 align="center">SkiNet</h1>
 
 <p align="center">
-  Snow sports gear catalog built with Angular 21 and ASP.NET Core 10, served from a single Docker image.
+  以 Angular 21 與 ASP.NET Core 10 打造的雪上運動裝備目錄，並以單一 Docker Image 提供服務。
 </p>
 
 <p align="center">
@@ -15,58 +15,58 @@
   <img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white">
 </p>
 
-SkiNet is a compact e-commerce sample that demonstrates a clean ASP.NET Core API, specification/repository patterns over EF Core, and an Angular SPA. The API and frontend are hosted under **one origin** and shipped as **one application image**; SQLite data lives in a Docker volume. A separate, optional `cloudflared` container can publish the app through a Cloudflare Quick Tunnel for short-lived test deployments.
+SkiNet 是一個精簡的電子商務範例，示範乾淨的 ASP.NET Core API、以 EF Core 實作的規格（Specification）與儲存庫（Repository）模式，以及 Angular SPA。API 與前端在同源下提供，並打包成單一應用程式 Image；SQLite 資料存放於 Docker Volume。另一個獨立的選用 `cloudflared` 容器可透過 Cloudflare Quick Tunnel 發佈應用程式，適合短期測試部署。
 
-## Highlights
+## 重點特色
 
-- **One image, one origin** — Angular, `/api/*`, and `/images/*` are served by the same ASP.NET Core process on port `8080`.
-- **Catalog API** — paging, brand/type filters, name search, and price sorting.
-- **Production-safe defaults** — Swagger and the deliberate error endpoints are available only in Development; unknown API routes stay `404` instead of falling back to the SPA.
-- **Root-relative images** — product image URLs such as `/images/products/sb-ang1.png` work behind any hostname, including random Quick Tunnel URLs.
-- **Persistent SQLite** — EF Core migrations and seed data run on startup; the database is stored in a named volume at `/data`.
-- **Optional Quick Tunnel** — an opt-in Compose overlay with Cloudflare Email PIN protection.
-- **Tested** — xUnit integration tests plus a container smoke test that verifies HTML, JSON, images, API 404s, and SQLite persistence.
+- **單一 Image、同源提供** — Angular、`/api/*` 與 `/images/*` 都由同一個 ASP.NET Core 程序在連接埠 `8080` 提供。
+- **商品目錄 API** — 支援分頁、品牌／類型篩選、名稱搜尋與價格排序。
+- **安全的正式環境預設值** — Swagger 與刻意觸發錯誤的端點僅在 Development 環境提供；未知 API 路由維持 `404`，不會退回 SPA。
+- **根路徑相對圖片** — 商品圖片網址如 `/images/products/sb-ang1.png` 可適用於任何主機名稱，包括隨機的 Quick Tunnel 網址。
+- **SQLite 持久化** — 啟動時執行 EF Core 移轉與種子資料寫入；資料庫存放於掛載到 `/data` 的具名 Volume。
+- **選用 Quick Tunnel** — 需主動啟用的 Compose overlay，並具備 Cloudflare Email PIN 保護。
+- **已測試** — 包含 xUnit 整合測試，以及驗證 HTML、JSON、圖片、API 404 與 SQLite 持久化的容器冒煙測試。
 
-## Tech stack
+## 技術堆疊
 
-| Layer | Technology |
+| 層級 | 技術 |
 |---|---|
-| Frontend | Angular 21, Bootstrap 5, ngx-bootstrap, Font Awesome |
-| API | ASP.NET Core 10, AutoMapper, Swashbuckle |
-| Data | EF Core 10, SQLite, specification + repository patterns |
-| Tests | xUnit, `Microsoft.AspNetCore.Mvc.Testing`, WebApplicationFactory |
-| Runtime | Multi-stage Docker build, Docker Compose, optional Cloudflare Quick Tunnel |
+| 前端 | Angular 21、Bootstrap 5、ngx-bootstrap、Font Awesome |
+| API | ASP.NET Core 10、AutoMapper、Swashbuckle |
+| 資料 | EF Core 10、SQLite、規格與儲存庫模式 |
+| 測試 | xUnit、`Microsoft.AspNetCore.Mvc.Testing`、WebApplicationFactory |
+| 執行環境 | 多階段 Docker 建置、Docker Compose、選用 Cloudflare Quick Tunnel |
 
-## Architecture
+## 架構
 
 ```mermaid
 flowchart LR
-  browser[Browser] -->|HTTPS| tunnel[Cloudflare Quick Tunnel<br/>optional]
-  tunnel -->|HTTP :8080| app[skinet container]
+  browser[瀏覽器] -->|HTTPS| tunnel[Cloudflare Quick Tunnel<br/>選用]
+  tunnel -->|HTTP :8080| app[skinet 容器]
   browser -.->|HTTP 127.0.0.1:5000| app
   app --> spa[Angular SPA]
   app --> api[ASP.NET Core API]
-  app --> images[/images static files/]
+  app --> images[/images 靜態檔案/]
   app --> db[(SQLite<br/>/data/skinet.db)]
 ```
 
-| Route | Served by |
+| 路由 | 提供者 |
 |---|---|
-| `/`, `/assets/*`, client-side routes | Angular build copied into `wwwroot` |
-| `/api/products`, `/api/products/{id}`, `/api/products/brands`, `/api/products/types` | ASP.NET Core controllers |
-| `/images/products/*` | `API/wwwroot/images` static files |
-| `/swagger` | Development only |
-| `/api/buggy/*` | Development only |
+| `/`、`/assets/*`、客戶端路由 | 複製到 `wwwroot` 的 Angular 建置產物 |
+| `/api/products`、`/api/products/{id}`、`/api/products/brands`、`/api/products/types` | ASP.NET Core 控制器 |
+| `/images/products/*` | `API/wwwroot/images` 靜態檔案 |
+| `/swagger` | 僅 Development |
+| `/api/buggy/*` | 僅 Development |
 
-## Getting started
+## 開始使用
 
-### Prerequisites
+### 前置需求
 
 - [.NET SDK 10](https://dotnet.microsoft.com/download)
-- [Node.js](https://nodejs.org/) 22 or 24, with npm 10+
-- [Docker](https://docs.docker.com/get-docker/) and Docker Compose v2+ for the containerized flow
+- [Node.js](https://nodejs.org/) 22 或 24，搭配 npm 10+
+- [Docker](https://docs.docker.com/get-docker/) 與 Docker Compose v2+（容器化流程）
 
-### Run with Docker (recommended)
+### 使用 Docker 執行（建議）
 
 ```bash
 git clone <repo-url> && cd skinet
@@ -76,57 +76,57 @@ curl -i http://127.0.0.1:5000/
 curl -i 'http://127.0.0.1:5000/api/products?pageSize=5'
 ```
 
-The app is published only on `127.0.0.1:5000`; it is not exposed on public interfaces. See [DEPLOY.md](DEPLOY.md) for upgrades, backups, rollback, and troubleshooting.
+應用程式只發佈於 `127.0.0.1:5000`，不會暴露在公開網路介面。升級、備份、回復與疑難排解請參閱 [DEPLOY.md](DEPLOY.md)。
 
-### Run locally
+### 本機執行
 
-Start the API:
+啟動 API：
 
 ```bash
 dotnet restore
 dotnet run --project API
-# API: https://localhost:5001 (HTTP: http://localhost:5000)
+# API：https://localhost:5001（HTTP：http://localhost:5000）
 ```
 
-Start the Angular dev server in another terminal:
+在另一個終端機啟動 Angular 開發伺服器：
 
 ```bash
 cd client
 npm ci
 
-# The dev server expects TLS files at client/ssl/
+# 開發伺服器預期 TLS 檔案位於 client/ssl/
 mkdir -p ssl
 openssl req -x509 -newkey rsa:2048 -nodes \
   -keyout ssl/server.key -out ssl/server.crt -days 365 \
   -subj "/CN=localhost"
 
 npm start
-# UI: https://localhost:4200
+# UI：https://localhost:4200
 ```
 
 > [!NOTE]
-> `client/ssl/` is gitignored. Generate the certificate once, or provide your own. The dev environment points Angular at `https://localhost:5001/`, and the API allows the `https://localhost:4200` origin. The dev server also proxies `/images` to the API so root-relative product images resolve during local development.
+> `client/ssl/` 已列入 gitignore。憑證只需產生一次，或改用你自己的憑證。開發環境會讓 Angular 指向 `https://localhost:5001/`，而 API 允許 `https://localhost:4200` 來源。開發伺服器也會將 `/images` 代理到 API，因此根路徑相對的商品圖片可在本機開發時正常顯示。
 
-## Configuration
+## 設定
 
-| Setting | Default | Notes |
+| 設定 | 預設值 | 說明 |
 |---|---|---|
-| `ConnectionStrings:DefaultConnection` | `Data source=skinet.db` | Override in Docker with `ConnectionStrings__DefaultConnection` |
-| `ASPNETCORE_URLS` | `http://+:80` in the legacy image, `http://+:8080` in the unified image | Compose sets `8080` |
-| `ASPNETCORE_ENVIRONMENT` | `Production` in Compose | Swagger and buggy endpoints are enabled only in `Development` |
-| `TUNNEL_ALLOWED_EMAIL` | — | Comma-separated email addresses allowed through the Quick Tunnel |
+| `ConnectionStrings:DefaultConnection` | `Data source=skinet.db` | 在 Docker 中以 `ConnectionStrings__DefaultConnection` 覆寫 |
+| `ASPNETCORE_URLS` | 舊版 Image 為 `http://+:80`，單一 Image 為 `http://+:8080` | Compose 設為 `8080` |
+| `ASPNETCORE_ENVIRONMENT` | Compose 中為 `Production` | Swagger 與 buggy 端點僅在 `Development` 啟用 |
+| `TUNNEL_ALLOWED_EMAIL` | — | 允許通過 Quick Tunnel 的電子郵件地址，以逗號分隔 |
 
-Docker uses `Data source=/data/skinet.db`; the Compose volume `skinet-data` (actual name usually `skinet_skinet-data`) is mounted at `/data`. `.env` is gitignored; start from [`.env.example`](.env.example).
+Docker 使用 `Data source=/data/skinet.db`；Compose Volume `skinet-data`（實際名稱通常為 `skinet_skinet-data`）會掛載到 `/data`。`.env` 已列入 gitignore；請從 [`.env.example`](.env.example) 開始設定。
 
-## API reference
+## API 參考
 
-| Method | Endpoint | Description |
+| 方法 | 端點 | 說明 |
 |---|---|---|
-| `GET` | `/api/products` | Paged catalog. Query: `pageIndex`, `pageSize` (default `6`, max `50`), `brandId`, `typeId`, `search`, `sort` (`priceAsc`, `priceDesc`) |
-| `GET` | `/api/products/{id}` | Single product; `404` when missing |
-| `GET` | `/api/products/brands` | Product brands |
-| `GET` | `/api/products/types` | Product types |
-| `GET` | `/images/products/{file}` | Product image |
+| `GET` | `/api/products` | 分頁商品目錄。查詢參數：`pageIndex`、`pageSize`（預設 `6`，上限 `50`）、`brandId`、`typeId`、`search`、`sort`（`priceAsc`、`priceDesc`） |
+| `GET` | `/api/products/{id}` | 單一商品；找不到時回傳 `404` |
+| `GET` | `/api/products/brands` | 商品品牌 |
+| `GET` | `/api/products/types` | 商品類型 |
+| `GET` | `/images/products/{file}` | 商品圖片 |
 
 ```bash
 curl 'http://127.0.0.1:5000/api/products?pageSize=1&sort=priceAsc'
@@ -151,84 +151,84 @@ curl 'http://127.0.0.1:5000/api/products?pageSize=1&sort=priceAsc'
 }
 ```
 
-Swagger is available at `https://localhost:5001/swagger` in Development only.
+Swagger 僅在 Development 環境提供，網址為 `https://localhost:5001/swagger`。
 
-## Testing
+## 測試
 
 ```bash
-# .NET unit + integration tests
+# .NET 單元與整合測試
 dotnet test skinet.sln -c Release
 
-# Angular lint and production build
+# Angular lint 與正式建置
 cd client
 npm run lint
 npm run build -- --configuration production
 cd ..
 
-# Container smoke test (build the image first)
+# 容器冒煙測試（先建置 Image）
 docker build -t skinet:local -f Dockerfile .
 ./scripts/docker-smoke-test.sh skinet:local
 ```
 
-The smoke test checks `/`, `/api/products`, `/images/products/*`, a missing `/api` route, and SQLite persistence across a container recreation using a volume marker.
+冒煙測試會檢查 `/`、`/api/products`、`/images/products/*`、不存在的 `/api` 路由，以及容器重建後 SQLite 是否透過 Volume 標記保持持久化。
 
-## Deployment
+## 部署
 
-The normal deployment is one application container plus a persistent volume:
+一般部署為一個應用程式容器加上一個持久化 Volume：
 
 ```bash
 docker compose up -d --build
 ```
 
-To expose it through a Cloudflare Quick Tunnel:
+若要透過 Cloudflare Quick Tunnel 對外提供：
 
 ```bash
 cp .env.example .env
-# Set TUNNEL_ALLOWED_EMAIL in .env
+# 在 .env 設定 TUNNEL_ALLOWED_EMAIL
 
 docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d --build
 docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs --tail=100 cloudflared
 ```
 
 > [!WARNING]
-> Quick Tunnel is intended for testing only. The URL changes when the tunnel restarts, there is no uptime guarantee, concurrent requests are capped, and SSE is not supported. Keep the Email PIN protection enabled and never expose ports `80`, `443`, or `5000` directly.
+> Quick Tunnel 僅供測試使用。Tunnel 重新啟動後網址會改變，不提供可用性保證，同時請求數有上限，且不支援 SSE。請保持 Email PIN 保護啟用，並切勿直接暴露 `80`、`443` 或 `5000` 連接埠。
 
-See [DEPLOY.md](DEPLOY.md) for the full VPS procedure, backup/restore commands, legacy rollback path, and troubleshooting.
+完整 VPS 部署流程、備份／還原指令、舊版回復路徑與疑難排解請參閱 [DEPLOY.md](DEPLOY.md)。
 
-## Project structure
+## 專案結構
 
 ```text
-API/              ASP.NET Core Web API, controllers, middleware, SPA hosting
-API.Tests/        xUnit unit and integration tests
-Core/             Entities, repository interfaces, specifications
-Infrastructure/   EF Core context, repositories, migrations, seed data
+API/              ASP.NET Core Web API、控制器、中介軟體、SPA 託管
+API.Tests/        xUnit 單元與整合測試
+Core/             實體、儲存庫介面、規格
+Infrastructure/   EF Core context、儲存庫、移轉、種子資料
 client/           Angular 21 SPA
-scripts/          Docker smoke and SQLite persistence test
-Dockerfile        Multi-stage Angular + .NET image
+scripts/          Docker 冒煙與 SQLite 持久化測試
+Dockerfile        Angular + .NET 多階段 Image
 docker-compose.yml
 docker-compose.tunnel.yml
-DEPLOY.md         Deployment, backup, and recovery guide
+DEPLOY.md         部署、備份與回復指南
 ```
 
-## Data and persistence
+## 資料與持久化
 
-- The database is SQLite at `/data/skinet.db` inside the container.
-- On startup the API applies EF Core migrations and seeds brands, types, and products when the tables are empty.
-- The seed dataset contains 18 products, 6 brands, and 4 types.
-- Container recreation keeps the named volume; `docker compose down -v` deletes it. Do not use `down -v` for routine deployments.
+- 資料庫位於容器內的 SQLite 檔案 `/data/skinet.db`。
+- 啟動時 API 會套用 EF Core 移轉，並在資料表為空時寫入品牌、類型與商品種子資料。
+- 種子資料包含 18 個商品、6 個品牌與 4 個類型。
+- 容器重建會保留具名 Volume；`docker compose down -v` 會刪除它。例行部署請勿使用 `down -v`。
 
-## Security notes
+## 安全性說明
 
-- Swagger and `BuggyController` are gated to the Development environment.
-- Unknown `/api/*` paths and `/swagger` plus `/swagger/*` return `404`, even in Production; the SPA fallback cannot turn them into `200 HTML`.
-- The API returns root-relative image URLs and rejects traversal, backslashes, absolute URLs, and dangerous schemes.
-- Production does not perform HTTP-to-HTTPS redirection inside the container; TLS is terminated by Cloudflare Tunnel.
-- CORS is limited to `https://localhost:4200` for local development; the unified deployment is same-origin.
-- Never commit `.env`, database files, certificates, or tunnel tokens.
+- Swagger 與 `BuggyController` 僅限 Development 環境使用。
+- 未知的 `/api/*` 路徑，以及 `/swagger` 與 `/swagger/*`，即使在 Production 也會回傳 `404`；SPA fallback 不會把它們變成 `200 HTML`。
+- API 回傳根路徑相對的圖片網址，並拒絕路徑穿越、反斜線、絕對 URL 與危險 scheme。
+- Production 不會在容器內執行 HTTP 到 HTTPS 的重新導向；TLS 由 Cloudflare Tunnel 終止。
+- CORS 僅限本機開發用的 `https://localhost:4200`；單一 Image 部署為同源，不需要放寬。
+- 切勿提交 `.env`、資料庫檔案、憑證或 Tunnel token。
 
-## Known limitations
+## 已知限制
 
-- Quick Tunnel is a POC mechanism, not a production ingress.
-- SQLite is single-node; this sample does not implement replication or multi-instance sharing.
-- The Angular UI is a starter catalog view; authentication, cart, checkout, and order workflows are not implemented.
-- External Quick Tunnel, Email PIN, and HTTPS verification require manual browser testing with a Cloudflare-reachable deployment.
+- Quick Tunnel 是 POC 機制，不是正式環境入口。
+- SQLite 為單節點；此範例未實作複寫或多實例共用。
+- Angular UI 為入門版商品目錄檢視；尚未實作驗證、購物車、結帳與訂單流程。
+- Quick Tunnel、Email PIN 與 HTTPS 的外部驗證需要可連線 Cloudflare 的部署環境，並以瀏覽器手動測試。
