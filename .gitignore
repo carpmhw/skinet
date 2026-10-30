@@ -11,6 +11,7 @@
 *.sln.docstates
 .env*
 .worktrees/
+.superpowers/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -431,6 +432,7 @@ FodyWeavers.xsd
 
 # OpenCode agent workspace (local tooling, do not commit)
 .opencode/
+.superpowers/
 openspec
 docs
 
