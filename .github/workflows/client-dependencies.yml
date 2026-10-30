@@ -39,3 +39,18 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
         continue-on-error: true
+      - name: Audit target transitive dependencies (include dev)
+        shell: bash
+        run: |
+          npm audit --include=dev --json > /tmp/skinet-audit.json || true
+          node - /tmp/skinet-audit.json <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const findings = data.vulnerabilities || {};
+          console.log('Full dependency audit counts:', JSON.stringify(data.metadata?.vulnerabilities || {}));
+          console.log('Vulnerable packages:', Object.keys(findings).join(', ') || '(none)');
+          const targets = ['undici', 'qs'];
+          const remaining = targets.filter(name => Boolean(findings[name]));
+          console.log('Affected targets:', remaining.join(', ') || '(none)');
+          if (data.error || remaining.length) process.exit(1);
+          NODE
