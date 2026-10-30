@@ -15,6 +15,28 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# 啟動指定 Image 的測試容器。
+start_container() {
+  docker run -d --name "$name" \
+    -p 127.0.0.1::8080 \
+    -e ASPNETCORE_ENVIRONMENT=Production \
+    -e 'ConnectionStrings__DefaultConnection=Data source=/data/skinet.db' \
+    -v "${volume}:/data" \
+    "$image" >/dev/null
+
+  port=$(docker port "$name" 8080/tcp | head -n1 | awk -F: '{print $NF}')
+}
+
+# 等待應用啟動與完成資料庫 Seed，最多 60 秒。
+wait_for_app() {
+  for _ in $(seq 1 60); do
+    if curl -fsS "http://127.0.0.1:${port}/" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+}
+
 # 檢查指定路徑的狀態碼與 Content-Type 前綴。
 check_response() {
   local path=$1
@@ -39,23 +61,17 @@ check_response() {
   echo "PASS $path: $status $content_type"
 }
 
+# 取得商品總數，用於容器重建後的持久化比對。
+product_count() {
+  curl -sS "http://127.0.0.1:${port}/api/products?pageSize=1" \
+    | grep -o '"count":[0-9]*' \
+    | head -n1 \
+    | cut -d: -f2
+}
+
 docker volume create "$volume" >/dev/null
-docker run -d --name "$name" \
-  -p 127.0.0.1::8080 \
-  -e ASPNETCORE_ENVIRONMENT=Production \
-  -e 'ConnectionStrings__DefaultConnection=Data source=/data/skinet.db' \
-  -v "${volume}:/data" \
-  "$image" >/dev/null
-
-port=$(docker port "$name" 8080/tcp | head -n1 | awk -F: '{print $NF}')
-
-# 等待應用啟動與完成資料庫 Seed，最多 60 秒。
-for _ in $(seq 1 60); do
-  if curl -fsS "http://127.0.0.1:${port}/" >/dev/null 2>&1; then
-    break
-  fi
-  sleep 1
-done
+start_container
+wait_for_app
 
 check_response "/" 200 "text/html"
 check_response "/api/products?pageSize=1" 200 "application/json"
@@ -68,4 +84,22 @@ if grep -qi '<html' "$body_file"; then
   exit 1
 fi
 
+# 重建容器但保留 Volume，確認 SQLite 資料仍在。
+before=$(product_count)
+if [ -z "$before" ]; then
+  echo "FAIL persistence: could not read product count" >&2
+  exit 1
+fi
+
+docker rm -f "$name" >/dev/null
+start_container
+wait_for_app
+
+after=$(product_count)
+if [ -z "$after" ] || [ "$before" != "$after" ]; then
+  echo "FAIL persistence: product count $before -> ${after:-unreadable}" >&2
+  exit 1
+fi
+
+echo "PASS persistence: $before products after container recreation"
 echo "Smoke test passed for $image"
