@@ -77,6 +77,7 @@
             "sslKey": "ssl/server.key",
             "sslCert": "ssl/server.crt",
             "ssl": true,
+            "proxyConfig": "proxy.conf.json",
             "buildTarget": "client:build"
           },
           "configurations": {
