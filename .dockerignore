@@ -2,6 +2,7 @@
 .gitignore
 .opencode
 .worktrees
+.superpowers
 docs/superpowers
 
 **/node_modules

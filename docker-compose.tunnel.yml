@@ -1,0 +1,13 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      - skinet
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --url
+      - http://skinet:8080
+      - --allowed-mail
+      - ${TUNNEL_ALLOWED_EMAIL:?Set TUNNEL_ALLOWED_EMAIL in .env}

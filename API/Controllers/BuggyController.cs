@@ -1,9 +1,11 @@
 using API.Errors;
+using API.Filters;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
+    [DevelopmentOnly]
     public class BuggyController : BaseApiController
     {
         private readonly StoreContext _context;
