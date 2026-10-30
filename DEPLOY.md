@@ -168,16 +168,25 @@ docker compose logs -f skinet
 
 ## SQLite 資料持久化與備份
 
-資料庫檔案位於容器內 `/data/skinet.db`，由 named volume `skinet-data` 持久化。容器重建不會清除資料；`docker compose down -v` 才會。
+資料庫檔案位於容器內 `/data/skinet.db`，由 Compose named volume 持久化。實際 Volume 名稱通常是 `<Compose 專案名稱>_skinet-data`；本專案目錄名為 `skinet` 時是 `skinet_skinet-data`。**不要假設名稱**，先取得容器實際掛載的 Volume：
+
+```bash
+VOLUME=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}' "$(docker compose ps -aq skinet)")
+echo "$VOLUME"
+```
+
+若輸出為空，代表容器尚未建立；先執行 `docker compose up -d`，或用 `docker volume ls` 找到 `<project>_skinet-data`。容器重建不會清除資料；`docker compose down -v` 才會。
 
 ### 備份
 
-先停止應用，再將 Volume 打包：
+先取得實際 Volume 名稱，再停止應用並打包：
 
 ```bash
+VOLUME=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}' "$(docker compose ps -aq skinet)")
+test -n "$VOLUME" || { echo "找不到 skinet 的 /data volume，請先啟動容器"; exit 1; }
 docker compose stop skinet
 docker run --rm \
-  -v skinet-data:/data:ro \
+  -v "$VOLUME":/data:ro \
   -v "$PWD":/backup \
   alpine tar czf /backup/skinet-data-$(date +%Y%m%d-%H%M%S).tgz -C /data .
 docker compose start skinet
@@ -188,15 +197,34 @@ docker compose start skinet
 只有在確認備份正確、且已停止應用後才執行。先備份目前資料，再還原：
 
 ```bash
+VOLUME=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}' "$(docker compose ps -aq skinet)")
+test -n "$VOLUME" || { echo "找不到 skinet 的 /data volume，請先啟動容器"; exit 1; }
 docker compose stop skinet
 docker run --rm \
-  -v skinet-data:/data \
+  -v "$VOLUME":/data \
   -v "$PWD":/backup \
   alpine sh -c 'rm -f /data/skinet.db /data/skinet.db-shm /data/skinet.db-wal && tar xzf /backup/<backup-file>.tgz -C /data'
 docker compose start skinet
 ```
 
 不要用刪除 Volume、`docker compose down -v` 或直接覆寫使用中的資料庫檔案來「修復」問題。
+
+### 舊版分離式部署升級前備份
+
+舊版 `api` service 的 Volume 可能由舊 Compose 專案建立，名稱不一定是 `skinet_skinet-data`。切換到新部署前，先對執行中的舊 `api` 容器取得實際 Volume：
+
+```bash
+VOLUME=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}' "$(docker compose -f docker-compose.legacy.yml ps -aq api)")
+test -n "$VOLUME" || { echo "找不到舊 api 的 /data volume"; exit 1; }
+docker compose -f docker-compose.legacy.yml stop api
+docker run --rm \
+  -v "$VOLUME":/data:ro \
+  -v "$PWD":/backup \
+  alpine tar czf /backup/skinet-legacy-data-$(date +%Y%m%d-%H%M%S).tgz -C /data .
+docker compose -f docker-compose.legacy.yml start api
+```
+
+若舊部署不是用 `docker-compose.legacy.yml` 啟動，請把 `docker compose -f docker-compose.legacy.yml ps -aq api` 換成實際 `api` 容器 ID（例如 `docker ps -aq --filter name=api`）。
 
 ## 疑難排解
 
@@ -253,6 +281,15 @@ docker compose logs skinet
 | 設定 | 不需要 Cloudflare 帳號 Token | 需要 Cloudflare 帳號、Tunnel Token、DNS |
 | 存取控制 | `--allowed-mail` Email PIN | Cloudflare Access 政策 |
 | 本次範圍 | 是 | 否，正式上線需另行規劃 |
+
+### Quick Tunnel 已知限制
+
+- 為測試／開發設計，沒有正式 uptime 保證。
+- URL 不固定，Tunnel 結束後失效。
+- 上限為 200 個同時進行中的請求，超出可能回 `429`。
+- 不支援 SSE。
+- `--allowed-mail` 需要互動式瀏覽器與收信；非互動式 `curl` 無法直接取得受保護的外網資源。
+- 隨機 URL 本身不是存取控制，請保留 Email PIN。
 
 未來若要改用 Named Tunnel，請新增獨立的 Compose overlay 或環境設定，**不要把 Tunnel Token 提交到 Git**。
 
