@@ -39,7 +39,7 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
         continue-on-error: true
-      - name: Audit all dependencies (temporary security verification)
+      - name: Audit target transitive dependencies (include dev)
         shell: bash
         run: |
           npm audit --include=dev --json > /tmp/skinet-audit.json || true
