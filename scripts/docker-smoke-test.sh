@@ -84,12 +84,15 @@ if grep -qi '<html' "$body_file"; then
   exit 1
 fi
 
-# 重建容器但保留 Volume，確認 SQLite 資料仍在。
+# 重建容器但保留 Volume，確認 SQLite 資料與 Volume 標記仍在。
 before=$(product_count)
 if [ -z "$before" ]; then
   echo "FAIL persistence: could not read product count" >&2
   exit 1
 fi
+
+sentinel="skinet-smoke-$(date +%s)-$$"
+docker exec "$name" sh -c "printf '%s' '$sentinel' > /data/skinet-smoke-sentinel"
 
 docker rm -f "$name" >/dev/null
 start_container
@@ -101,5 +104,16 @@ if [ -z "$after" ] || [ "$before" != "$after" ]; then
   exit 1
 fi
 
-echo "PASS persistence: $before products after container recreation"
+actual_sentinel=$(docker exec "$name" cat /data/skinet-smoke-sentinel 2>/dev/null || true)
+if [ "$actual_sentinel" != "$sentinel" ]; then
+  echo "FAIL persistence: volume marker missing after container recreation" >&2
+  exit 1
+fi
+
+if ! docker exec "$name" test -s /data/skinet.db; then
+  echo "FAIL persistence: /data/skinet.db is missing or empty" >&2
+  exit 1
+fi
+
+echo "PASS persistence: $before products and volume marker survived container recreation"
 echo "Smoke test passed for $image"
