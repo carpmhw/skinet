@@ -232,3 +232,7 @@ DEPLOY.md         部署、備份與回復指南
 - SQLite 為單節點；此範例未實作複寫或多實例共用。
 - Angular UI 為入門版商品目錄檢視；尚未實作驗證、購物車、結帳與訂單流程。
 - Quick Tunnel、Email PIN 與 HTTPS 的外部驗證需要可連線 Cloudflare 的部署環境，並以瀏覽器手動測試。
+
+## 參考資源
+
+- [Learn to build an e-commerce app with .NET Core and Angular](https://www.udemy.com/course/learn-to-build-an-e-commerce-app-with-net-core-and-angular/) — 本專案所依據的 Udemy 課程。
