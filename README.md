@@ -159,9 +159,10 @@ Swagger 僅在 Development 環境提供，網址為 `https://localhost:5001/swag
 # .NET 單元與整合測試
 dotnet test skinet.sln -c Release
 
-# Angular lint 與正式建置
+# Angular lint、單元測試與正式建置
 cd client
 npm run lint
+npm test -- --watch=false
 npm run build -- --configuration production
 cd ..
 

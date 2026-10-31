@@ -4,15 +4,15 @@ import { provideZoneChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../environments/environment';
 import { AppComponent } from './app.component';
+import { AppModule } from './app.module';
 import { IProduct } from './models/product';
-import { NavBarComponent } from './nav-bar/nav-bar.component';
 
 describe('AppComponent', () => {
   let http: HttpTestingController;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [AppComponent, NavBarComponent],
+      imports: [AppModule],
       // Match the zone-based change detection configured in main.ts.
       providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
