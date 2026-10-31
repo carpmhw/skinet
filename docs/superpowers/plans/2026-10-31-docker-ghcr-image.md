@@ -229,6 +229,8 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -266,9 +268,10 @@ Run:
 ```bash
 grep -F 'if: github.event_name != '\''pull_request'\''' .github/workflows/docker-image.yml
 grep -F 'push: ${{ github.event_name != '\''pull_request'\'' }}' .github/workflows/docker-image.yml
+grep -F 'latest=false' .github/workflows/docker-image.yml
 ```
 
-Expected: 兩個 grep 都找到各一行，exit code 0。
+Expected: 三個 grep 都找到各一行，exit code 0。
 
 - [ ] **Step 4: 提交 workflow**
 
@@ -326,7 +329,7 @@ Expected:
 在「使用 Docker 執行（建議）」的本機建置指令之後，新增 `### 使用 GHCR Image` 小節，內容需包含：
 
 ````markdown
-GitHub Actions 會為 `dev`、`master` 與 `v*` tag 建置 `linux/amd64` Image，並發佈到 `ghcr.io/carpmhw/skinet`；PR 只建置，不會推送。可用 tags 包含 `dev`、`master`、`v1.2.3`、`1.2` 與 `sha-<short>`。
+GitHub Actions 會為 `dev`、`master` 與 `v*` tag 建置 `linux/amd64` Image，並發佈到 `ghcr.io/carpmhw/skinet`；PR 只建置，不會推送。可用 tags 包含 `dev`、`master`、`1.2.3`、`1.2` 與 `sha-<short>`；推送 `v1.2.3` git tag 會產生不帶 `v` 前綴的 Image tag。
 
 ```bash
 # private package 需先登入；public package 可省略

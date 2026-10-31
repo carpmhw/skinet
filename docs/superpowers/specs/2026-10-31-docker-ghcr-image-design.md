@@ -91,6 +91,7 @@
   - 版本 tag：`1.2.3`、`1.2`。
   - 每次建置：`sha-<short>`。
   - PR：不推送，因此不產生 registry tag。
+  - 不產生 `latest`；metadata-action 必須設定 `flavor: latest=false`。
 - 快取：GitHub Actions cache（`type=gha`）。
 - PR 的 `push` 固定為 `false`；其他事件才登入 GHCR 並推送。
 
