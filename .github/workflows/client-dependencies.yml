@@ -36,6 +36,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Build Angular application
         run: npm run build
+      - name: Run unit tests
+        run: npm test -- --watch=false
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
       - name: Audit all dependencies (including dev)
