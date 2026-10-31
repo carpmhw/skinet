@@ -54,3 +54,17 @@ jobs:
           console.log('Affected targets:', remaining.join(', ') || '(none)');
           if (data.error || remaining.length) process.exit(1);
           NODE
+      - name: Diagnose remaining development dependency vulnerabilities
+        shell: bash
+        run: |
+          npm audit --include=dev --json > /tmp/skinet-audit-details.json || true
+          node - /tmp/skinet-audit-details.json <<'NODE'
+          const fs = require('fs');
+          const audit = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          for (const name of ['@angular/cli','body-parser','engine.io','ip-address','nanoid','probe-image-size','zod']) {
+            const entry = audit.vulnerabilities?.[name];
+            if (!entry) { console.log('AUDIT_DETAIL', JSON.stringify({name, status:'clear'})); continue; }
+            console.log('AUDIT_DETAIL', JSON.stringify({name, severity:entry.severity, range:entry.range, nodes:entry.nodes, fixAvailable:entry.fixAvailable, via:entry.via.map(v=>typeof v==='string'?v:{name:v.name,title:v.title,url:v.url,range:v.range,severity:v.severity})}));
+          }
+          if (audit.error) process.exit(1);
+          NODE
