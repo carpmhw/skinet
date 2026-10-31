@@ -38,7 +38,8 @@
     "qs": "6.16.1",
     "engine.io": "6.6.10",
     "probe-image-size": "7.4.0",
-    "zod": "4.6.6"
+    "zod": "4.6.6",
+    "minimatch@^10": "11.0.1"
   },
   "dependencies": {
     "@angular/animations": "21.2.25",
