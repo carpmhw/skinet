@@ -80,7 +80,7 @@ curl -i 'http://127.0.0.1:5000/api/products?pageSize=5'
 
 ### 使用 GHCR Image
 
-GitHub Actions 會為 `dev`、`master` 與 `v*` tag 建置 `linux/amd64` Image，並發佈到 `ghcr.io/carpmhw/skinet`；PR 只建置，不會推送。可用 tags 包含 `dev`、`master`、`v1.2.3`、`1.2` 與 `sha-<short>`。
+GitHub Actions 會為 `dev`、`master` 與 `v*` tag 建置 `linux/amd64` Image，並發佈到 `ghcr.io/carpmhw/skinet`；PR 只建置，不會推送。可用 tags 包含 `dev`、`master`、`1.2.3`、`1.2` 與 `sha-<short>`；推送 `v1.2.3` git tag 會產生不帶 `v` 前綴的 Image tag。
 
 ```bash
 # private package 需先登入；public package 可省略
