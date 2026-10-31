@@ -13,14 +13,16 @@ COPY skinet.sln ./
 COPY API/API.csproj API/
 COPY Core/Core.csproj Core/
 COPY Infrastructure/Infrastructure.csproj Infrastructure/
-RUN dotnet restore API/API.csproj
+RUN dotnet restore API/API.csproj -r linux-musl-x64
 COPY API/ API/
 COPY Core/ Core/
 COPY Infrastructure/ Infrastructure/
-RUN dotnet publish API/API.csproj -c Release -o /out --no-restore
+RUN dotnet publish API/API.csproj -c Release -r linux-musl-x64 --self-contained false -p:SatelliteResourceLanguages=en -o /out --no-restore
 
 # Runtime: single ASP.NET Core host with Angular and API under one origin
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+RUN apk add --no-cache icu-libs icu-data-en
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 WORKDIR /app
 COPY --from=api-build /out/ ./
 COPY --from=client-build /src/client/dist/client/ ./wwwroot/

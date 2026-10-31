@@ -15,6 +15,7 @@
 
 - [前置需求](#前置需求)
 - [單一應用部署](#單一應用部署)
+- [使用 GHCR Image 部署](#使用-ghcr-image-部署)
 - [Cloudflare Quick Tunnel](#cloudflare-quick-tunnel)
 - [本機除錯](#本機除錯)
 - [SQLite 資料持久化與備份](#sqlite-資料持久化與備份)
@@ -46,12 +47,36 @@ docker compose up -d --build
 
 `docker-compose.yml` 會：
 
-- 從根目錄 `Dockerfile` 建置 `skinet:local`
+- 預設從根目錄 `Dockerfile` 建置 `skinet:local`；也可由 `SKINET_IMAGE` 指定 GHCR Image
 - 啟動一個 `skinet` 服務，內部監聽 `8080`
 - 將 named volume `skinet-data` 掛載到 `/data`
 - 使用 `ASPNETCORE_ENVIRONMENT=Production`
 - 使用連線字串 `Data source=/data/skinet.db`
 - 僅將 `127.0.0.1:5000` 對應到容器 `8080`，不公開到外網
+
+### 使用 GHCR Image 部署
+
+GitHub Actions 的 `Docker image` workflow 會為 `dev`、`master` 與 `v*` tag 建置 `linux/amd64` Image，發佈到 `ghcr.io/carpmhw/skinet`；PR 只建置，不會推送。建議部署時使用不可變的 `sha-<short>` tag，避免分支 tag 在下次推送後變動。
+
+第一次推送通常會建立 private package。部署主機需要具備 `read:packages` 權限的 GitHub PAT：
+
+```bash
+export GHCR_TOKEN='<your-pat>'
+echo "$GHCR_TOKEN" | docker login ghcr.io -u '<github-user>' --password-stdin
+```
+
+若已在 GitHub 的 Packages → `skinet` → Package settings 將 package 改為 public，則可省略登入。不要把 token 寫入 Compose 或 repo；使用後可執行 `unset GHCR_TOKEN`。
+
+指定 Image 並部署：
+
+```bash
+export SKINET_IMAGE='ghcr.io/carpmhw/skinet:sha-<short>'
+docker compose pull skinet
+docker compose up -d --no-build
+docker compose ps
+```
+
+回復時把 `SKINET_IMAGE` 改成先前的 `sha-` tag，再重新執行 `docker compose pull skinet` 與 `docker compose up -d --no-build`。若資料庫已套用不相容的 migration，仍需依下方備份還原流程處理。
 
 ### 啟動、停止、升級、看日誌
 

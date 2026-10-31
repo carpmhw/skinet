@@ -1,6 +1,6 @@
 services:
   skinet:
-    image: skinet:local
+    image: ${SKINET_IMAGE:-skinet:local}
     build:
       context: .
       dockerfile: Dockerfile
