@@ -7,7 +7,7 @@
 
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*" PrivateAssets="all" />
     <PackageReference Include="AutoMapper" Version="15.1.1"/>
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.3.*"/>
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUi" Version="7.3.*"/>
