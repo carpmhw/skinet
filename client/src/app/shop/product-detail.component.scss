@@ -1,0 +1,147 @@
+.product-detail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 16px 0 24px;
+  color: #141414;
+  text-underline-offset: 5px;
+}
+
+.back-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 56px;
+  align-items: start;
+}
+
+.detail-picture {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 520px;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.detail-info {
+  padding-top: 20px;
+}
+
+.detail-meta {
+  margin: 0;
+  font-size: 14px;
+  color: #545b63;
+}
+
+.detail-info h1 {
+  margin: 12px 0 20px;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.detail-price {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-info dl {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  margin: 28px 0;
+}
+
+.detail-info dt {
+  color: #545b63;
+}
+
+.detail-info dd {
+  margin: 0;
+}
+
+.detail-info h2 {
+  margin: 32px 0 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.detail-description {
+  margin: 0;
+  color: #545b63;
+}
+
+.demo-note {
+  margin: 24px 0 0;
+  font-size: 14px;
+  color: #545b63;
+}
+
+.detail-status {
+  padding: 32px 0;
+  color: #545b63;
+}
+
+.detail-state h1 {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+
+.detail-state p {
+  margin: 0 0 16px;
+  color: #545b63;
+}
+
+.detail-state button {
+  margin-right: 16px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid #141414;
+  border-radius: 6px;
+  background: #141414;
+  color: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .detail-grid {
+    gap: 24px;
+  }
+
+  .detail-picture {
+    height: 400px;
+  }
+}
+
+@media (max-width: 600px) {
+  .product-detail {
+    padding: 0 16px 32px;
+  }
+
+  .detail-grid {
+    display: block;
+  }
+
+  .detail-picture {
+    height: 340px;
+  }
+
+  .detail-info {
+    padding-top: 12px;
+  }
+
+  .back-link {
+    margin: 0 0 12px;
+  }
+}

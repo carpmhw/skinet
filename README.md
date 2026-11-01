@@ -21,6 +21,7 @@ SkiNet 是一個精簡的電子商務範例，示範乾淨的 ASP.NET Core API�
 
 - **單一 Image、同源提供** — Angular、`/api/*` 與 `/images/*` 都由同一個 ASP.NET Core 程序在連接埠 `8080` 提供。
 - **商品目錄 API** — 支援分頁、品牌／類型篩選、名稱搜尋與價格排序。
+- **商品目錄** — 瀏覽商品卡片、搜尋、單選品牌／類型篩選、價格排序與分頁，並可開啟獨立詳情頁。
 - **安全的正式環境預設值** — Swagger 與刻意觸發錯誤的端點僅在 Development 環境提供；未知 API 路由維持 `404`，不會退回 SPA。
 - **根路徑相對圖片** — 商品圖片網址如 `/images/products/sb-ang1.png` 可適用於任何主機名稱，包括隨機的 Quick Tunnel 網址。
 - **SQLite 持久化** — 啟動時執行 EF Core 移轉與種子資料寫入；資料庫存放於掛載到 `/data` 的具名 Volume。
@@ -188,7 +189,7 @@ docker build -t skinet:local -f Dockerfile .
 ./scripts/docker-smoke-test.sh skinet:local
 ```
 
-冒煙測試會檢查 `/`、`/api/products`、`/images/products/*`、不存在的 `/api` 路由，以及容器重建後 SQLite 是否透過 Volume 標記保持持久化。
+冒煙測試會檢查 `/`、`/shop`、`/shop/1`、`/api/products`、`/images/products/*`、不存在的 `/api` 路由，以及容器重建後 SQLite 是否透過 Volume 標記保持持久化。
 
 ## 部署
 
@@ -248,7 +249,8 @@ DEPLOY.md         部署、備份與回復指南
 
 - Quick Tunnel 是 POC 機制，不是正式環境入口。
 - SQLite 為單節點；此範例未實作複寫或多實例共用。
-- Angular UI 為入門版商品目錄檢視；尚未實作驗證、購物車、結帳與訂單流程。
+- Angular UI 為商品目錄展示，包含搜尋、篩選、排序、分頁與詳情頁；尚未實作驗證、購物車、結帳與訂單流程。
+- 價格以新臺幣（TWD）顯示，沿用種子資料數值，未做匯率換算；部分商品描述仍是拉丁文佔位文字，僅供展示。
 - Quick Tunnel、Email PIN 與 HTTPS 的外部驗證需要可連線 Cloudflare 的部署環境，並以瀏覽器手動測試。
 
 ## 參考資源

@@ -1,0 +1,203 @@
+<section class="shop" aria-labelledby="catalogue-title">
+  <header class="page-head">
+    <h1 id="catalogue-title">商品目錄</h1>
+    <p>雪板、雪靴與雪地配件，找到想了解的裝備。</p>
+  </header>
+
+  <div class="shop-layout">
+    <details class="filters" [open]="filtersOpen">
+      <summary>篩選商品</summary>
+      <div class="filter-content">
+        <fieldset>
+          <legend>品牌</legend>
+          <label class="filter-option">
+            <input
+              type="radio"
+              name="brand"
+              [checked]="query.brandId === null"
+              (change)="setFilter('brandId', null)"
+            />
+            全部品牌
+          </label>
+          @for (brand of brands; track brand.id) {
+            <label class="filter-option">
+              <input
+                type="radio"
+                name="brand"
+                [checked]="query.brandId === brand.id"
+                (change)="setFilter('brandId', brand.id)"
+              />
+              {{ brand.name }}
+            </label>
+          }
+        </fieldset>
+        @if (brandState === 'loading') {
+          <p class="lookup-note">正在載入品牌選項…</p>
+        }
+        @if (brandState === 'error') {
+          <p class="lookup-error" role="alert">
+            品牌選項載入失敗。
+            <button class="brands-retry" type="button" (click)="retryLookup('brands')">
+              重試品牌
+            </button>
+          </p>
+        }
+
+        <fieldset>
+          <legend>類型</legend>
+          <label class="filter-option">
+            <input
+              type="radio"
+              name="type"
+              [checked]="query.typeId === null"
+              (change)="setFilter('typeId', null)"
+            />
+            全部類型
+          </label>
+          @for (type of types; track type.id) {
+            <label class="filter-option">
+              <input
+                type="radio"
+                name="type"
+                [checked]="query.typeId === type.id"
+                (change)="setFilter('typeId', type.id)"
+              />
+              {{ type.name }}
+            </label>
+          }
+        </fieldset>
+        @if (typeState === 'loading') {
+          <p class="lookup-note">正在載入類型選項…</p>
+        }
+        @if (typeState === 'error') {
+          <p class="lookup-error" role="alert">
+            類型選項載入失敗。
+            <button class="types-retry" type="button" (click)="retryLookup('types')">
+              重試類型
+            </button>
+          </p>
+        }
+      </div>
+    </details>
+
+    <div class="results">
+      <form class="toolbar" role="search" (ngSubmit)="submitSearch()">
+        <div class="field search-field">
+          <label for="product-search">搜尋商品</label>
+          <input
+            id="product-search"
+            name="search"
+            type="search"
+            autocomplete="off"
+            [(ngModel)]="searchTerm"
+          />
+        </div>
+        <button class="submit-search" type="submit">搜尋</button>
+        <div class="field sort-field">
+          <label for="product-sort">排序</label>
+          <select
+            id="product-sort"
+            [value]="query.sort"
+            (change)="setSort($any($event.target).value)"
+          >
+            <option value="name">名稱</option>
+            <option value="priceAsc">價格由低到高</option>
+            <option value="priceDesc">價格由高到低</option>
+          </select>
+        </div>
+        @if (hasConditions) {
+          <button class="clear-filters" type="button" (click)="clearFilters()">清除條件</button>
+        }
+      </form>
+
+      <p class="result-count" role="status" aria-live="polite">
+        @if (loading) {
+          正在載入商品…
+        } @else if (error) {
+          商品載入失敗。
+        } @else if (count === 0) {
+          沒有符合的商品。
+        } @else {
+          第 {{ rangeStart }}–{{ rangeEnd }} 件，共 {{ count }} 件
+        }
+      </p>
+
+      @if (error) {
+        <div class="state-panel" role="alert">
+          <p>商品載入失敗，請確認網路後再試一次。</p>
+          <button class="products-retry" type="button" (click)="retryProducts()">
+            重新載入商品
+          </button>
+        </div>
+      } @else if (loading) {
+        <div class="product-grid" aria-hidden="true">
+          @for (item of skeletonItems; track item) {
+            <div class="product-card skeleton">
+              <span class="picture"></span>
+              <span class="product-meta"><span></span><span></span></span>
+              <span class="product-name"></span>
+              <span class="product-price"></span>
+            </div>
+          }
+        </div>
+      } @else if (count === 0) {
+        <div class="state-panel">
+          <p>找不到符合條件的商品，試著放寬篩選或換個關鍵字。</p>
+          <button class="empty-clear" type="button" (click)="clearFilters()">清除條件</button>
+        </div>
+      } @else {
+        <div class="product-grid">
+          @for (product of products; track product.id) {
+            <a
+              class="product-card"
+              [routerLink]="['/shop', product.id]"
+              [queryParams]="detailQueryParams"
+            >
+              <span class="picture">
+                <app-product-image [src]="product.pictureUrl" [alt]="product.name" />
+              </span>
+              <span class="product-meta">
+                <span>{{ product.productBrand }}</span>
+                <span>{{ product.productType }}</span>
+              </span>
+              <span class="product-name">{{ product.name }}</span>
+              <span class="product-price">{{ product.price | twdPrice }}</span>
+            </a>
+          }
+        </div>
+      }
+
+      @if (loading || count > 0) {
+        <nav class="pagination" aria-label="商品分頁">
+          <button
+            type="button"
+            [disabled]="loading || query.pageIndex === 1"
+            (click)="goToPage(query.pageIndex - 1)"
+          >
+            上一頁
+          </button>
+          <div class="page-numbers">
+            @for (page of pageNumbers; track page) {
+              <button
+                type="button"
+                [class.current]="page === query.pageIndex"
+                [attr.aria-current]="page === query.pageIndex ? 'page' : null"
+                [disabled]="loading"
+                (click)="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+            }
+          </div>
+          <button
+            type="button"
+            [disabled]="loading || query.pageIndex >= lastPage"
+            (click)="goToPage(query.pageIndex + 1)"
+          >
+            下一頁
+          </button>
+        </nav>
+      }
+    </div>
+  </div>
+</section>
