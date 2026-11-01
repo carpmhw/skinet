@@ -74,9 +74,19 @@ start_container
 wait_for_app
 
 check_response "/" 200 "text/html"
+check_response "/shop" 200 "text/html"
+grep -qi '<app-root' "$body_file" || {
+  echo "FAIL /shop: missing app-root" >&2
+  exit 1
+}
+check_response "/shop/1" 200 "text/html"
+grep -qi '<app-root' "$body_file" || {
+  echo "FAIL /shop/1: missing app-root" >&2
+  exit 1
+}
 check_response "/api/products?pageSize=1" 200 "application/json"
 check_response "/images/products/sb-ang1.png" 200 "image/png"
-check_response "/api/does-not-exist" 404 ""
+check_response "/api/does-not-exist" 404 "application/json"
 
 # 確認未知 API 回應不是 Angular 首頁。
 if grep -qi '<html' "$body_file"; then

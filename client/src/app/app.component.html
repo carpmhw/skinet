@@ -1,13 +1,9 @@
+<a class="skip-link" href="#main-content">跳至主要內容</a>
+
 <app-nav-bar></app-nav-bar>
 
-<div class="container" style="margin-top: 140px;">
-  <h1>Welcome to {{title}}!</h1>
-  <ul>
-    @for (product of products; track product) {
-      <li class="list-unstyled">
-        {{product.name}}
-      </li>
-    }
-  </ul>
-</div>
+<main id="main-content" tabindex="-1">
+  <router-outlet></router-outlet>
+</main>
 
+<footer class="site-footer">價格以新臺幣 TWD 顯示</footer>

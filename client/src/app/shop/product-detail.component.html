@@ -1,0 +1,39 @@
+<section class="product-detail" aria-labelledby="product-title">
+  @if (loading) {
+    <p class="detail-status" role="status">正在載入商品…</p>
+  } @else if (notFound) {
+    <div class="detail-state">
+      <h1 id="product-title">找不到商品</h1>
+      <p>這個商品可能已下架，或連結有誤。</p>
+      <a class="back-link" [routerLink]="['/shop']" [queryParams]="backParams">返回商品列表</a>
+    </div>
+  } @else if (error) {
+    <div class="detail-state" role="alert">
+      <h1 id="product-title">商品載入失敗</h1>
+      <p>請確認網路後再試一次。</p>
+      <button class="product-retry" type="button" (click)="retryProduct()">重新載入商品</button>
+      <a class="back-link" [routerLink]="['/shop']" [queryParams]="backParams">返回商品列表</a>
+    </div>
+  } @else if (product) {
+    <a class="back-link" [routerLink]="['/shop']" [queryParams]="backParams">返回商品列表</a>
+    <div class="detail-grid">
+      <div class="detail-picture">
+        <app-product-image [src]="product.pictureUrl" [alt]="product.name" />
+      </div>
+      <div class="detail-info">
+        <p class="detail-meta">{{ product.productBrand }} · {{ product.productType }}</p>
+        <h1 id="product-title">{{ product.name }}</h1>
+        <p class="detail-price">{{ product.price | twdPrice }}</p>
+        <dl>
+          <dt>品牌</dt>
+          <dd>{{ product.productBrand }}</dd>
+          <dt>類型</dt>
+          <dd>{{ product.productType }}</dd>
+        </dl>
+        <h2>商品介紹</h2>
+        <p class="detail-description">{{ product.description }}</p>
+        <p class="demo-note">商品資料僅供示範。</p>
+      </div>
+    </div>
+  }
+</section>

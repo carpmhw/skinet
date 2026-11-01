@@ -63,6 +63,78 @@ public class ProductsControllerTests : IClassFixture<CustomWebApplicationFactory
     }
 
     [Fact]
+    public async Task GetProducts_WithDefaultPageSize_ReturnsSixItems()
+    {
+        var response = await _client.GetAsync("/api/products");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<Pagination<ProductToReturnDto>>(_jsonOptions);
+        Assert.NotNull(result);
+        Assert.Equal(6, result.PageSize);
+        Assert.True(result.Data.Count <= 6);
+    }
+
+    [Fact]
+    public async Task GetProducts_SearchIsCaseInsensitive()
+    {
+        var response = await _client.GetAsync("/api/products?search=core&pageSize=50");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<Pagination<ProductToReturnDto>>(_jsonOptions);
+        Assert.NotNull(result);
+        Assert.True(result.Count > 0);
+        Assert.All(result.Data, product => Assert.Contains("core", product.Name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task GetProducts_FiltersByBrand()
+    {
+        var response = await _client.GetAsync("/api/products?brandId=1&pageSize=50");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<Pagination<ProductToReturnDto>>(_jsonOptions);
+        Assert.NotNull(result);
+        Assert.True(result.Count > 0);
+        Assert.All(result.Data, product => Assert.Equal("Angular", product.ProductBrand));
+    }
+
+    [Fact]
+    public async Task GetProducts_FiltersByType()
+    {
+        var response = await _client.GetAsync("/api/products?typeId=2&pageSize=50");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<Pagination<ProductToReturnDto>>(_jsonOptions);
+        Assert.NotNull(result);
+        Assert.True(result.Count > 0);
+        Assert.All(result.Data, product => Assert.Equal("Hats", product.ProductType));
+    }
+
+    [Fact]
+    public async Task GetProducts_SortsByPriceAscending()
+    {
+        var response = await _client.GetAsync("/api/products?sort=priceAsc&pageSize=50");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<Pagination<ProductToReturnDto>>(_jsonOptions);
+        Assert.NotNull(result);
+        var prices = result.Data.Select(product => product.Price).ToList();
+        Assert.Equal(prices.OrderBy(price => price), prices);
+    }
+
+    [Fact]
+    public async Task GetProducts_SortsByPriceDescending()
+    {
+        var response = await _client.GetAsync("/api/products?sort=priceDesc&pageSize=50");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<Pagination<ProductToReturnDto>>(_jsonOptions);
+        Assert.NotNull(result);
+        var prices = result.Data.Select(product => product.Price).ToList();
+        Assert.Equal(prices.OrderByDescending(price => price), prices);
+    }
+
+    [Fact]
     public async Task GetProductBrands_ReturnsBrands()
     {
         var response = await _client.GetAsync("/api/products/brands");

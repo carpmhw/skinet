@@ -66,7 +66,21 @@ public class ApiHostingTests : IClassFixture<CustomWebApplicationFactory>
         var response = await _client.GetAsync("/api/does-not-exist");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
         Assert.NotEqual("text/html", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Theory]
+    [InlineData("/shop")]
+    [InlineData("/shop/1")]
+    [InlineData("/shop/1?brandId=1&sort=priceAsc")]
+    public async Task GetCatalogueClientRoute_ReturnsAngularIndexHtml(string path)
+    {
+        var response = await _client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("app-root", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
