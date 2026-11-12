@@ -12,6 +12,7 @@ import { ProductDetailComponent } from './shop/product-detail.component';
 import { ProductImageComponent } from './shop/product-image.component';
 import { ProductListComponent } from './shop/product-list.component';
 import { TwdPricePipe } from './shop/twd-price.pipe';
+import { CartComponent } from './cart/cart.component';
 
 @NgModule({ declarations: [
         AppComponent,
@@ -20,7 +21,8 @@ import { TwdPricePipe } from './shop/twd-price.pipe';
         ProductListComponent,
         ProductDetailComponent,
         ProductImageComponent,
-        TwdPricePipe
+        TwdPricePipe,
+        CartComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         AppRoutingModule,

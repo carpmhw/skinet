@@ -24,6 +24,18 @@
         <p class="detail-meta">{{ product.productBrand }} · {{ product.productType }}</p>
         <h1 id="product-title">{{ product.name }}</h1>
         <p class="detail-price">{{ product.price | twdPrice }}</p>
+        <div class="cart-action">
+          <button class="add-to-cart" type="button" (click)="addToCart()">加入購物車</button>
+          <p class="cart-feedback" aria-live="polite">
+            {{ cartFeedback }}
+            @if (addedToCart) {
+              <a routerLink="/cart">查看購物車</a>
+            }
+          </p>
+          @if (cart.storageWarning(); as warning) {
+            <p class="storage-warning" role="status">{{ warning }}</p>
+          }
+        </div>
         <dl>
           <dt>品牌</dt>
           <dd>{{ product.productBrand }}</dd>

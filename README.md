@@ -22,6 +22,7 @@ SkiNet 是一個精簡的電子商務範例，示範乾淨的 ASP.NET Core API�
 - **單一 Image、同源提供** — Angular、`/api/*` 與 `/images/*` 都由同一個 ASP.NET Core 程序在連接埠 `8080` 提供。
 - **商品目錄 API** — 支援分頁、品牌／類型篩選、名稱搜尋與價格排序。
 - **商品目錄** — 瀏覽商品卡片、搜尋、單選品牌／類型篩選、價格排序與分頁，並可開啟獨立詳情頁。
+- **訪客購物車** — 從詳情頁加入商品，在 `/cart` 調整數量與移除；同商品上限 99 件，導覽顯示總件數，金額由當次 API 商品價格計算。
 - **安全的正式環境預設值** — Swagger 與刻意觸發錯誤的端點僅在 Development 環境提供；未知 API 路由維持 `404`，不會退回 SPA。
 - **根路徑相對圖片** — 商品圖片網址如 `/images/products/sb-ang1.png` 可適用於任何主機名稱，包括隨機的 Quick Tunnel 網址。
 - **SQLite 持久化** — 啟動時執行 EF Core 移轉與種子資料寫入；資料庫存放於掛載到 `/data` 的具名 Volume。
@@ -189,7 +190,15 @@ docker build -t skinet:local -f Dockerfile .
 ./scripts/docker-smoke-test.sh skinet:local
 ```
 
-冒煙測試會檢查 `/`、`/shop`、`/shop/1`、`/api/products`、`/images/products/*`、不存在的 `/api` 路由，以及容器重建後 SQLite 是否透過 Volume 標記保持持久化。
+冒煙測試會檢查 `/`、`/shop`、`/shop/1`、`/cart`、`/api/products`、`/images/products/*`、不存在的 `/api` 路由，以及容器重建後 SQLite 是否透過 Volume 標記保持持久化。HTML fallback 檢查不等同於瀏覽器的購物車操作驗收。
+
+### 購物車的保存與價格
+
+- 只從詳情頁每次加入一件；在購物車調整為 1–99 件或明確移除，不代表已預留庫存。
+- localStorage 的 `skinet.cart.v1` 只保存商品 ID 與數量，不保存價格；每次進入 `/cart` 重新向 API 取得商品資料。部分商品下架或載入失敗時保留項目，但不顯示完整總額。
+- 內容僅適用於同一瀏覽器、同一網站 origin；不提供跨裝置或跨分頁同步。清除網站資料或 Quick Tunnel 換網址後，無法沿用原網址的購物車。
+- 儲存資料壞損會提示並以空車開始；瀏覽器拒絕儲存或空間不足時仍可暫時操作，但會警告重新整理後可能遺失。
+- 此為示範購物車，金額不含運費，沒有結帳或付款。未來真正交易必須由後端重新計算並驗證價格。
 
 ### CI 與 Image 發佈閘門
 
@@ -259,7 +268,7 @@ DEPLOY.md         部署、備份與回復指南
 
 - Quick Tunnel 是 POC 機制，不是正式環境入口。
 - SQLite 為單節點；此範例未實作複寫或多實例共用。
-- Angular UI 為商品目錄展示，包含搜尋、篩選、排序、分頁與詳情頁；尚未實作驗證、購物車、結帳與訂單流程。
+- Angular UI 提供商品目錄與瀏覽器購物車；尚未實作會員驗證、庫存預留、結帳、付款與訂單流程。
 - 價格以新臺幣（TWD）顯示，沿用種子資料數值，未做匯率換算；部分商品描述仍是拉丁文佔位文字，僅供展示。
 - Quick Tunnel、Email PIN 與 HTTPS 的外部驗證需要可連線 Cloudflare 的部署環境，並以瀏覽器手動測試。
 

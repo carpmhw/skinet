@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { IProduct } from '../models/product';
 import { parseProductId, parseShopQuery, toShopParams } from './shop-query';
 import { ShopService } from './shop.service';
+import { CartService } from '../cart/cart.service';
 
 @Component({
   selector: 'app-product-detail',
@@ -14,6 +15,7 @@ import { ShopService } from './shop.service';
   standalone: false,
 })
 export class ProductDetailComponent implements OnInit, OnDestroy {
+  readonly cart = inject(CartService);
   private readonly route = inject(ActivatedRoute);
   private readonly shop = inject(ShopService);
   private readonly title = inject(Title);
@@ -23,6 +25,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   loading = false;
   notFound = false;
   error = false;
+  cartFeedback = '';
+  addedToCart = false;
 
   private currentId: number | null = null;
   private idSub?: Subscription;
@@ -55,8 +59,19 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.loadProduct(this.currentId);
   }
 
+  // 每次只加入目前已載入商品一件，依共用狀態回報結果而不跳頁。
+  addToCart(): void {
+    if (!this.product) return;
+    this.addedToCart = this.cart.add(this.product.id);
+    this.cartFeedback = this.addedToCart
+      ? `已加入購物車，目前共 ${this.cart.totalQuantity()} 件。`
+      : '此商品最多可加入 99 件';
+  }
+
   // 依 id 載入商品，並區分不存在與其他載入錯誤。
   private loadProduct(id: number | null): void {
+    this.cartFeedback = '';
+    this.addedToCart = false;
     this.requestSub?.unsubscribe();
     this.product = null;
     this.notFound = false;

@@ -85,6 +85,11 @@ grep -qi '<app-root' "$body_file" || {
   exit 1
 }
 check_response "/api/products?pageSize=1" 200 "application/json"
+check_response "/cart" 200 "text/html"
+grep -qi '<app-root' "$body_file" || {
+  echo "FAIL /cart: missing app-root" >&2
+  exit 1
+}
 check_response "/images/products/sb-ang1.png" 200 "image/png"
 check_response "/api/does-not-exist" 404 "application/json"
 
