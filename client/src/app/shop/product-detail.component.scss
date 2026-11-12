@@ -64,6 +64,21 @@
   margin: 28px 0;
 }
 
+.cart-action { margin-top: 24px; }
+.add-to-cart {
+  min-height: 44px;
+  padding: 10px 24px;
+  border: 1px solid #141414;
+  border-radius: 6px;
+  background: #141414;
+  color: #ffffff;
+}
+.add-to-cart:hover { background: #333333; }
+.cart-feedback { margin: 12px 0 0; }
+.cart-feedback:empty { margin: 0; }
+.cart-feedback a { display: inline-flex; align-items: center; min-height: 44px; color: #141414; text-underline-offset: 5px; }
+.storage-warning { margin: 12px 0 0; color: #545b63; }
+
 .detail-info dt {
   color: #545b63;
 }

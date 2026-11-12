@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { CartService } from '../cart/cart.service';
 
 @Component({
     selector: 'app-nav-bar',
@@ -7,5 +8,5 @@ import { Component } from '@angular/core';
     standalone: false
 })
 export class NavBarComponent {
-
+  readonly cart = inject(CartService);
 }

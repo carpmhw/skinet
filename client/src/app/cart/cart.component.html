@@ -1,0 +1,73 @@
+<section class="cart-page" aria-labelledby="cart-title">
+  <header class="cart-heading">
+    <h1 id="cart-title">購物車</h1>
+    <p>確認想帶走的裝備，數量與內容只保留在此瀏覽器。</p>
+  </header>
+
+  @if (cart.storageWarning(); as warning) {
+    <p class="storage-warning" role="status">{{ warning }}</p>
+  }
+
+  @if (rows().length === 0) {
+    <div class="empty-cart">
+      <h2 id="empty-cart-title" tabindex="-1">購物車目前是空的</h2>
+      <p>先看看雪板、雪靴與雪地配件。</p>
+      <a class="continue-shopping" routerLink="/shop">瀏覽商品</a>
+    </div>
+  } @else {
+    <div class="cart-items" aria-label="購物車商品">
+      @for (row of rows(); track row.productId) {
+        <article class="cart-row" [attr.data-product-id]="row.productId">
+          @if (row.product; as product) {
+            <div class="cart-picture"><app-product-image [src]="product.pictureUrl" [alt]="product.name" /></div>
+            <div class="cart-product">
+              <h2><a [routerLink]="['/shop', row.productId]">{{ product.name }}</a></h2>
+              <p>{{ product.productBrand }} · {{ product.productType }}</p>
+              <p class="unit-price">單價 {{ product.price | twdPrice }}</p>
+            </div>
+          } @else {
+            <div class="cart-product unavailable-product">
+              @if (row.status === 'loading') {
+                <h2 role="status">正在載入商品 #{{ row.productId }}…</h2>
+              } @else if (row.status === 'unavailable') {
+                <h2>商品 #{{ row.productId }} 已無法購買</h2>
+                <p>請移除此商品後再確認總額。</p>
+              } @else {
+                <h2>商品 #{{ row.productId }} 載入失敗</h2>
+                <button type="button" class="retry-product" (click)="retryProduct(row.productId)">重試商品</button>
+              }
+            </div>
+          }
+          <div class="cart-controls">
+            <label [for]="'quantity-' + row.productId">數量<span class="visually-hidden">：{{ row.product?.name ?? '商品 #' + row.productId }}</span></label>
+            <input #quantityInput [id]="'quantity-' + row.productId" type="number" min="1" max="99" step="1"
+              [value]="row.quantity" [disabled]="row.status !== 'ready'"
+              [attr.aria-invalid]="quantityErrors()[row.productId] ? 'true' : null"
+              [attr.aria-describedby]="quantityErrors()[row.productId] ? 'quantity-error-' + row.productId : null"
+              (change)="changeQuantity(row.productId, quantityInput)" />
+            <button type="button" class="remove-item" [attr.aria-label]="'移除 ' + (row.product?.name ?? '商品 #' + row.productId)" (click)="removeItem(row.productId)">移除</button>
+            @if (quantityErrors()[row.productId]) {
+              <p class="quantity-error" [id]="'quantity-error-' + row.productId" role="alert">請輸入 1–99 的整數</p>
+            }
+          </div>
+          <p class="line-subtotal">
+            @if (row.subtotalCents !== null) {
+              <span>小計</span> {{ row.subtotalCents / 100 | twdPrice }}
+            } @else {
+              <span>小計待確認</span>
+            }
+          </p>
+        </article>
+      }
+    </div>
+    <div class="cart-summary">
+      @if (total() !== null) {
+        <p class="cart-total">總額 <strong>{{ total()! | twdPrice }}</strong></p>
+      } @else {
+        <p class="incomplete-total" role="status">商品資料尚未完整，暫無法計算總額</p>
+      }
+      <p class="demo-note">示範購物車，金額不含運費，尚未提供結帳。</p>
+      <a class="continue-shopping" routerLink="/shop">繼續瀏覽商品</a>
+    </div>
+  }
+</section>
