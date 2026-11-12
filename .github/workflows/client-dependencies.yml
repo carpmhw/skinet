@@ -1,16 +1,7 @@
 name: Client dependency validation
 
 on:
-  pull_request:
-    branches: [master]
-    paths:
-      - 'client/**'
-      - '.github/workflows/client-dependencies.yml'
-  push:
-    branches: [master, dev]
-    paths:
-      - 'client/**'
-      - '.github/workflows/client-dependencies.yml'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -34,8 +25,10 @@ jobs:
           cache-dependency-path: client/package-lock.json
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+      - name: Lint Angular application
+        run: npm run lint
       - name: Build Angular application
-        run: npm run build
+        run: npm run build -- --configuration production
       - name: Run unit tests
         run: npm test -- --watch=false
       - name: Audit production dependencies

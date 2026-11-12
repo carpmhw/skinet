@@ -191,6 +191,16 @@ docker build -t skinet:local -f Dockerfile .
 
 冒煙測試會檢查 `/`、`/shop`、`/shop/1`、`/api/products`、`/images/products/*`、不存在的 `/api` 路由，以及容器重建後 SQLite 是否透過 Volume 標記保持持久化。
 
+### CI 與 Image 發佈閘門
+
+`.github/workflows/docker-image.yml` 是自動驗證入口：送往 `dev`／`master` 的 PR、推送至這兩個分支或 `v*` tag，以及手動觸發都會執行完整流程，不以變更路徑略過檢查。
+
+1. 平行執行前端與後端驗證：前端呼叫可重用的 `client-dependencies.yml`，執行 lint、單元測試、Production Build 與正式／全部依賴安全掃描；後端執行 .NET 10 Release 建置與測試。
+2. 兩者成功後建置並載入 `linux/amd64` Image，執行上述容器冒煙與 SQLite 持久化測試。
+3. 全部通過後，只有非 PR 且位於 `dev`、`master` 或 `v*` tag 的執行才會登入並發佈 GHCR。PR 與手動選擇其他分支時只驗證，不推送 Image。
+
+前端 workflow 亦保留獨立手動驗證入口。CI 不自動部署、不建立 Cloudflare Tunnel，也不取代 Email PIN、外網 HTTPS 與實際瀏覽器的手動驗收。
+
 ## 部署
 
 一般部署為一個應用程式容器加上一個持久化 Volume：
