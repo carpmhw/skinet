@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { proxyCatalogue, type ProxyEnv } from './catalogue-proxy';
 
 const env: ProxyEnv = {
@@ -6,6 +6,14 @@ const env: ProxyEnv = {
   CF_ACCESS_CLIENT_ID: 'private-id',
   CF_ACCESS_CLIENT_SECRET: 'private-secret'
 };
+
+// 攔截實際日誌輸出邊界，檢查診斷欄位並避免測試錯誤污染終端。
+beforeEach(() => {
+  vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+});
+
+// 每個案例還原日誌，避免替身跨測試殘留。
+afterEach(() => vi.restoreAllMocks());
 
 /** 建立真實瀏覽器請求，保留可控制的路徑與方法。 */
 function request(path = '/api/products', method = 'GET') {
@@ -183,4 +191,88 @@ it.each([
   expect(response.status).toBe(status);
   expect(response.body).toBeNull();
   expect(response.headers.get('cache-control')).toBe('no-store');
+});
+
+// 缺少分類日誌或直接記錄上游資料，都會使診斷與保密斷言失敗。
+it.each([
+  [401, 'text/html; charset=utf-8', 'upstream_auth', 'html'],
+  [403, 'application/json; secret=private-secret', 'upstream_auth', 'json'],
+  [302, 'text/html', 'upstream_redirect', 'html'],
+  [200, 'text/html', 'unexpected_content_type', 'html'],
+  [502, 'text/plain', 'unexpected_content_type', 'other'],
+  [200, '', 'unexpected_content_type', 'missing'],
+  [200, 'private-secret/server-id', 'unexpected_content_type', 'other']
+] as const)('logs sanitized upstream failure metadata: %#', async (status, type, reason, contentType) => {
+  const upstream = new Response('private-secret', {
+    status,
+    headers: {
+      'Content-Type': type, 'Set-Cookie': 'private-id',
+      Location: 'https://login.example/private-secret'
+    }
+  });
+  if (!type) upstream.headers.delete('Content-Type');
+  const fetcher = vi.fn<typeof fetch>(async () => upstream);
+  await error(
+    await proxyCatalogue(request('/api/products?secret=private-secret'), env, fetcher),
+    502, 'Backend unavailable'
+  );
+  expect(vi.mocked(console.warn).mock.calls).toEqual([
+    ['catalogue_proxy', { reason, status, contentType }]
+  ]);
+});
+
+// fetch 的原始例外可能包含憑證；日誌只可留下固定分類。
+it('logs fetch failure without recording exception details', async () => {
+  const fetcher = vi.fn<typeof fetch>(async () => {
+    throw new Error('private-id private-secret https://internal.example');
+  });
+  await error(await proxyCatalogue(request(), env, fetcher), 502, 'Backend unavailable');
+  expect(vi.mocked(console.warn).mock.calls).toEqual([
+    ['catalogue_proxy', { reason: 'fetch_failed' }]
+  ]);
+});
+
+// HEAD 需保持無 body，診斷仍只在伺服器端輸出。
+it('logs authentication failure for HEAD without exposing diagnostic fields', async () => {
+  const fetcher = vi.fn<typeof fetch>(async () => new Response('private-secret', {
+    status: 403, headers: { 'Content-Type': 'text/html' }
+  }));
+  const response = await proxyCatalogue(request('/api/products', 'HEAD'), env, fetcher);
+  expect(response.status).toBe(502);
+  expect(response.body).toBeNull();
+  expect(Object.fromEntries(response.headers)).toEqual({
+    'cache-control': 'no-store', 'content-type': 'application/json'
+  });
+  expect(vi.mocked(console.warn).mock.calls).toEqual([
+    ['catalogue_proxy', { reason: 'upstream_auth', status: 403, contentType: 'html' }]
+  ]);
+});
+
+// 圖片錯誤狀態與內容錯誤分開，避免將有效 image MIME 當成成功。
+it('classifies an upstream image error status', async () => {
+  const fetcher = vi.fn<typeof fetch>(async () => new Response('private-secret', {
+    status: 500, headers: { 'Content-Type': 'image/png; secret=private-secret' }
+  }));
+  await error(
+    await proxyCatalogue(request('/images/products/a.png'), env, fetcher),
+    502, 'Backend unavailable'
+  );
+  expect(vi.mocked(console.warn).mock.calls).toEqual([
+    ['catalogue_proxy', { reason: 'upstream_status', status: 500, contentType: 'image' }]
+  ]);
+});
+
+// 正常回應與預期404不產生日誌，避免公開流量造成無謂的診斷噪音。
+it.each([
+  ['/api/products', 200, 'application/json'],
+  ['/api/products', 404, 'application/problem+json'],
+  ['/images/products/a.png', 200, 'image/png'],
+  ['/images/products/a.png', 404, 'text/html']
+] as const)('does not log ordinary responses: %#', async (path, status, contentType) => {
+  const fetcher = vi.fn<typeof fetch>(async () => new Response('{}', {
+    status, headers: { 'Content-Type': contentType }
+  }));
+  const response = await proxyCatalogue(request(path), env, fetcher);
+  expect(response.status).toBe(status);
+  expect(console.warn).not.toHaveBeenCalled();
 });
