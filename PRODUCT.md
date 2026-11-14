@@ -17,6 +17,8 @@ SkiNet 目前提供商品瀏覽、搜尋、篩選、排序、分頁、詳情與�
 ## Operating Context
 
 - Angular 21 前端、ASP.NET Core 10 商品 API、SQLite，既有部署為單一 Docker Image。
+- 已備妥可選 Pages 公開前端＋Functions 同源商品／圖片代理；後端沿用 combined Image，以 Named Tunnel＋Access Service Auth 保護。真實網域與憑證由部署者設定，尚未實際部署或遠端驗收。
+- 公開代理可被任何客戶端呼叫；後端限制的是有效 Service Token，不是 Origin／Referer。切換前端 origin 不會自動搬移原購物車。
 - 已選擇用 localStorage 保存購物車的商品 ID 與數量；僅在同一瀏覽器、同一 origin 下保留。
 - 商品名稱、圖片及目前價格由既有 API 取得，不將瀏覽器內容當作價格權威。
 

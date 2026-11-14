@@ -17,6 +17,7 @@
 - [單一應用部署](#單一應用部署)
 - [使用 GHCR Image 部署](#使用-ghcr-image-部署)
 - [Cloudflare Quick Tunnel](#cloudflare-quick-tunnel)
+- [公開 Pages 與 Named Tunnel](#公開-pages-與-named-tunnel)
 - [本機除錯](#本機除錯)
 - [SQLite 資料持久化與備份](#sqlite-資料持久化與備份)
 - [疑難排解](#疑難排解)
@@ -305,7 +306,7 @@ docker compose logs skinet
 | 穩定性 | 無 SLA，重啟可能換網址 | 可長期固定 |
 | 設定 | 不需要 Cloudflare 帳號 Token | 需要 Cloudflare 帳號、Tunnel Token、DNS |
 | 存取控制 | `--allowed-mail` Email PIN | Cloudflare Access 政策 |
-| 本次範圍 | 是 | 否，正式上線需另行規劃 |
+| 配置 | 舊測試入口保留 | 已備妥獨立配置，實際部署待驗收 |
 
 ### Quick Tunnel 已知限制
 
@@ -316,7 +317,135 @@ docker compose logs skinet
 - `--allowed-mail` 需要互動式瀏覽器與收信；非互動式 `curl` 無法直接取得受保護的外網資源。
 - 隨機 URL 本身不是存取控制，請保留 Email PIN。
 
-未來若要改用 Named Tunnel，請新增獨立的 Compose overlay 或環境設定，**不要把 Tunnel Token 提交到 Git**。
+Named Tunnel 請使用下方獨立配置，**不要把 Tunnel Token 提交到 Git**。
+
+## 公開 Pages 與 Named Tunnel
+
+此為選用部署方式；設定已備妥，但未建立 Cloudflare 資源、部署或驗收外網。
+
+```text
+訪客 → Pages Angular（公開、不要求 PIN）
+     → 同源 /api/*、/images/* 的 Pages Functions
+     → https://api.example.com（Access Service Auth）
+     → Named Tunnel → http://skinet:8080 → SQLite /data
+```
+
+後端仍使用現有 combined Image，沒有另建 API-only Image。其根頁即使存在也受整個 hostname 的 Access 保護；公開代理不開放根頁、Swagger、buggy 或寫入 API。這不是防爬：任何客戶端可查公開目錄；任何持有有效 Service Token 的程式都可能直連後端。Origin／Referer 不作身份驗證。
+
+### 1. 準備 hostname、Access 與 Named Tunnel
+
+需要 Cloudflare 帳號、受管理的自有網域、Pages 專案與 Named Tunnel。下列 `api.example.com` 全部替換為同一個真實 API hostname；範例不會建立 DNS。
+
+1. 建立 Named Tunnel，安全取得 connector token。
+2. **先**為 API hostname 建立 self-hosted Access application，涵蓋所有路徑（不要只保護 `/api`，圖片與根頁也必須受保護）。
+3. 建立 Access Service Token，政策 action 選 **Service Auth**，include 僅選指定 **Service Token**。不得加 Everyone、訪客 Email Allow 或 Bypass 政策。核對沒有更精確的子路徑 application 繞過此限制。
+4. 確認 Access 已涵蓋 hostname，再設定 Tunnel published application route／DNS，origin 為 `http://skinet:8080`，不是 `localhost:5000`。不要把容器 HTTP 改成重新導向公網 HTTPS。
+5. 未驗證無 token 與錯 token 都被拒絕前，不切換正式入口。
+
+兩種 token 不可混用：
+
+| 參數 | 放置位置 |
+|---|---|
+| `CLOUDFLARE_TUNNEL_TOKEN` | 後端 `.env.named`，Compose 映射為 cloudflared 的 `TUNNEL_TOKEN` |
+| `API_ORIGIN=https://api.example.com` | Pages Functions runtime variable，HTTPS origin，不能有帳密、路徑、query 或 fragment |
+| `CF_ACCESS_CLIENT_ID` | Pages encrypted Secret（Access Service Token ID） |
+| `CF_ACCESS_CLIENT_SECRET` | Pages encrypted Secret（Access Service Token Secret） |
+
+真值不進 Angular、Git、瀏覽器、對話或日誌。不要輸出含真實 token 的 `docker compose config`、`docker inspect` 或 shell tracing；配置驗證用 `config --quiet`。
+
+### 2. 確認 SQLite Volume 與受控切換
+
+沿用本文件的備份程序，**先取得舊容器實際的 /data Volume 名稱並備份**：
+
+```bash
+docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}' "$(docker compose ps -aq skinet)"
+cp .env.named.example .env.named
+chmod 600 .env.named
+```
+
+編輯 `.env.named`：填入已驗證的固定 Image `sha-` tag、上述實際 `SKINET_DATA_VOLUME` 名稱與 connector token。舊容器不在預設 Compose 專案時，改用實際容器 ID。若找不到舊資料，先查明，不得藉由新建 Volume 掩蓋問題。
+
+只有全新安裝才由部署者明確建立空 Volume：
+
+```bash
+docker volume create skinet-named-data
+# 將 .env.named 的 SKINET_DATA_VOLUME 填成 skinet-named-data
+```
+
+新配置將該 Volume 宣告為 external；缺值或不存在時拒絕啟動，不自動建立另一份空 DB。保留切換前 Image tag、Compose project 名稱與備份，不允許兩個應用同時對同一 SQLite 做啟動 migration。
+
+在授權的維護時段先停止舊 Quick Tunnel／其他直接入口及舊應用，再啟動新組合。同一專案沿用預設 project 時，執行：
+
+```bash
+# 僅在原本使用此組配置時，停止舊入口與應用；不刪除 Volume
+docker compose -f docker-compose.yml -f docker-compose.tunnel.yml stop cloudflared skinet
+
+docker compose --env-file .env.named -f docker-compose.named.yml config --quiet
+docker compose --env-file .env.named -f docker-compose.named.yml pull
+docker compose --env-file .env.named -f docker-compose.named.yml up -d --no-build
+docker compose --env-file .env.named -f docker-compose.named.yml ps
+```
+
+若使用自訂 project，所有操作一致加 `-p <原專案名>`，或明確管理新舊 project 的停止與網路。Named 配置是**獨立檔案**，不要疊加 `docker-compose.yml` 或 `docker-compose.tunnel.yml`，避免舊 ports／Email PIN 參數殘留。切換後必須確認沒有其他未受 Access 保護的 Tunnel／反向代理／公開 port；不關閉舊入口就不符合此部署邊界。
+
+Named 預設無 host port。需要本機診斷才另加：
+
+```bash
+docker compose --env-file .env.named -f docker-compose.named.yml -f docker-compose.named.debug.yml up -d --no-build
+curl -i http://127.0.0.1:5000/api/products
+```
+
+debug 只綁 `127.0.0.1:5000`，不是公開入口。`cloudflared:latest` 是本次配置的預設值；pull 可能升級 connector，請在維護時段驗收並記錄實際版本／digest，不保證其行為永遠不變。
+
+### 3. Pages Git Integration
+
+連結 repository，設定：
+
+| 欄位 | 值 |
+|---|---|
+| Root directory | `client` |
+| Production branch | 由部署者選擇，範例 `dev` |
+| Node version | `24`（如 `NODE_VERSION=24` 建置變數） |
+| Build command | `npm run build -- --configuration production` |
+| Build output directory | `dist/client`（相對 root directory） |
+
+`client/functions/` 是伺服器入口，不要移進靜態輸出或改用不支援 Functions 的單純靜態上傳。建置會把 `client/pages/_routes.json` 複製到輸出根目錄，僅 `/api`、`/api/*`、`/images`、`/images/*` 執行 Functions；其餘靜態頁面不耗代理請求。保留 Pages 預設 SPA fallback，不新增 `404.html` 或把 API 全部 rewrite 至 index.html。
+
+在 Pages Functions 的 Production runtime 設定 `API_ORIGIN` 與兩個 encrypted Secrets，變更後**重新部署**；不是改 Angular environment。`client/.dev.vars.example` 只是本機 Functions 範例，不會自動成為 Dashboard binding，`ng serve` 也不執行 Pages Functions。
+
+Preview 與 Production 分開設定；Preview 預設不放上述 credentials，合法商品請求回 `503`，靜態頁仍可預覽。不要讓不受信任 fork 或任意 PR build 接觸 production secrets；如需完整 preview，另用受信任分支與獨立 Service Token。具有 production build／部署權限的程式碼必須可信。
+
+**Git Integration 不會等待 GitHub Actions checks。** 既有 CI 仍含 Angular、proxy、audit、.NET、Image smoke 與 GHCR 發佈 gate，但 Pages 自動部署是另一流程。若要強制「CI 成功才部署 Pages」，需另設 CI-controlled deployment，這次未新增持有 Cloudflare token 的 workflow。
+
+Functions 有請求／計費配額，圖片也算請求；所有代理回應 `Cache-Control: no-store`，不承諾無限免費。於 Pages Functions 配額／失敗模式選 **fail closed**，避免超額時 `/api` 或 `/images` 落回靜態 SPA；實際超額頁可能由平台產生，不保證使用本代理的 JSON。
+
+### 4. 代理合約與排查
+
+- GET／HEAD：`/api/products`、`/api/products/{正整數 id}`、`/api/products/brands`、`/api/products/types`，以及 `/images/products/{單一檔名}`，圖片副檔名限 png／jpg／jpeg／webp／gif／avif。
+- 保留列表 query；不轉送訪客 Cookie、Authorization、Host 或 Access headers。HEAD 上游使用 GET，回應不含 body。
+- 未允許路徑回固定 `404`，其他 method 回 `405`。缺失／無效 runtime bindings 為 `503 Proxy is not configured`，不會 fallback 到公開後端。
+- 認證拒絕、redirect、非預期 HTML 或網路錯誤為 `502 Backend unavailable`。檢查 Service Token 是否過期、政策是否 Service Auth、API_ORIGIN 是否同 hostname、Tunnel route 是否正確，以及 backend 是否正常；不要用 Bypass／CORS 放寬代替修復。
+- 普通 API JSON 錯誤保留狀態碼，圖片不存在回 `404`；不透傳 Set-Cookie、認證 headers 或登入 redirect。
+
+### 5. 遠端驗收（目前全部 NOT RUN）
+
+本機測試不能代替以下驗收，需填入真實設定並獲授權部署：
+
+1. 直接請求 API hostname（根頁、商品 API 與圖片），無 token／錯 token 都被 Access 拒絕；不要用 `curl -L` 掩蓋登入 redirect。
+2. 正確 Service Token 可取得商品 JSON／圖片。若以 curl 驗證，使用受保護且未追蹤的 header 設定檔，不貼真值於命令、shell history、輸出或對話。
+3. 未登入的訪客可在 Pages 瀏覽目錄、搜尋、篩選、排序、分頁、詳情、圖片與購物車；`/shop`、`/shop/17`、`/cart` 重新整理仍能操作。
+4. Pages `/api`、`/images`、未知子路徑、`/api/buggy/servererror` 為真 404，不能回 200 index.html；`/swagger` 不得取得後端 Swagger（可能是前端 SPA），POST 商品 API 為 405。
+5. 檢查瀏覽器 network、Angular bundle 與回應沒有 Service Token／Set-Cookie；認證錯誤不轉給訪客登入頁。
+6. Preview 無憑證回 503；靜態資產不執行 Functions；核對平台 fail-closed 設定。
+7. 核對切換前後商品數量與 SQLite Volume 名稱，舊入口已關閉。前端換 origin 後購物車不自動搬移。
+
+### 6. 輪替與回復
+
+Access Service Token：建立新 token → Access 政策允許新 token → 更新受信任 Pages runtime Secrets 並 redeploy → 驗證新 token 與公開頁 → 撤銷舊 token，確認舊 token 拒絕。Tunnel connector token 依 Cloudflare 流程另外輪替並重建 connector，不可互換。
+
+回復優先用同一 Named 配置改回已驗證的 Image tag 並 `pull`／`up -d --no-build`，external Volume 名稱保持不變；必須先確認 DB schema 相容。若不相容，先停止應用並依受控備份流程還原，不用刪 Volume 修復。
+
+要回到舊 combined／Quick Tunnel 配置，先停止 Named connector 與應用，保留 Volume，確認舊配置會掛載**同一個**實際 Volume（project 名稱需核對），再啟動先前已記錄的版本及入口；不得同時留下未受保護入口。恢復前也需確認 Pages 公開代理的後端仍符合其 Service Auth 合約，否則暫停該公開入口。保留 Quick Tunnel 配置不代表先前的 Email session 問題已修復；重新驗收其登入行為。
 
 ## 舊版分離式部署與回復
 
