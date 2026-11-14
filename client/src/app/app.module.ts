@@ -13,6 +13,8 @@ import { ProductImageComponent } from './shop/product-image.component';
 import { ProductListComponent } from './shop/product-list.component';
 import { TwdPricePipe } from './shop/twd-price.pipe';
 import { CartComponent } from './cart/cart.component';
+import { FavoritesComponent } from './favorites/favorites.component';
+import { FavoriteToggleComponent } from './favorites/favorite-toggle.component';
 
 @NgModule({ declarations: [
         AppComponent,
@@ -22,7 +24,9 @@ import { CartComponent } from './cart/cart.component';
         ProductDetailComponent,
         ProductImageComponent,
         TwdPricePipe,
-        CartComponent
+        CartComponent,
+        FavoritesComponent,
+        FavoriteToggleComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         AppRoutingModule,

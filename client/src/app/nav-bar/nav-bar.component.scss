@@ -43,6 +43,18 @@ nav a:hover,
   color: #545b63;
 }
 
+.favorites-feedback {
+  max-width: 1200px;
+  min-block-size: 24px;
+  margin: 8px auto 0;
+  padding: 0 24px;
+  font-size: 14px;
+  color: #545b63;
+  overflow-wrap: anywhere;
+}
+.favorites-warning { display: block; color: #a12622; }
+nav a:focus-visible, .wordmark:focus-visible { outline: 2px solid #141414; outline-offset: 4px; }
+
 @media (max-width: 600px) {
   .site-header {
     min-height: 64px;
@@ -52,4 +64,5 @@ nav a:hover,
   .tagline {
     display: none;
   }
+  .favorites-feedback { padding: 0 16px; }
 }

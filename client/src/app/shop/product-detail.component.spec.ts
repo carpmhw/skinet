@@ -14,6 +14,8 @@ import { ProductListComponent } from './product-list.component';
 import { TwdPricePipe } from './twd-price.pipe';
 import { CartService } from '../cart/cart.service';
 import { vi } from 'vitest';
+import { FavoriteToggleComponent } from '../favorites/favorite-toggle.component';
+import { FavoritesService } from '../favorites/favorites.service';
 
 describe('ProductDetailComponent', () => {
   let http: HttpTestingController;
@@ -39,6 +41,7 @@ describe('ProductDetailComponent', () => {
 
   beforeEach(async () => {
     localStorage.removeItem('skinet.cart.v1');
+    localStorage.removeItem('skinet.favorites.v1');
     TestBed.configureTestingModule({
       declarations: [
         ProductDetailComponent,
@@ -46,6 +49,7 @@ describe('ProductDetailComponent', () => {
         NotFoundComponent,
         ProductImageComponent,
         TwdPricePipe,
+        FavoriteToggleComponent,
       ],
       imports: [FormsModule, RouterModule],
       providers: [
@@ -64,6 +68,7 @@ describe('ProductDetailComponent', () => {
     http.verify();
     vi.restoreAllMocks();
     localStorage.removeItem('skinet.cart.v1');
+    localStorage.removeItem('skinet.favorites.v1');
   });
 
   // 開啟詳情頁並回傳實際渲染的元件。
@@ -180,8 +185,12 @@ describe('ProductDetailComponent', () => {
       .flush({ pageIndex: 1, pageSize: 6, count: 1, data: [boots] });
     harness.fixture.detectChanges();
 
+    const favorite = harness.routeNativeElement!.querySelector<HTMLButtonElement>('app-favorite-toggle button')!;
+    favorite.click();
+    harness.fixture.detectChanges();
+    expect(TestBed.inject(FavoritesService).productIds()).toEqual([1]);
     const detailHref = harness
-      .routeNativeElement!.querySelector('a.product-card')!
+      .routeNativeElement!.querySelector('a.product-link')!
       .getAttribute('href')!;
     expect(detailHref).toBe('/shop/1?brandId=1');
     await harness.navigateByUrl(detailHref);
@@ -189,6 +198,12 @@ describe('ProductDetailComponent', () => {
     pendingProduct(1).flush(boots);
     harness.fixture.detectChanges();
     expect(router.url).toBe('/shop/1?brandId=1');
+    const detailFavorite = harness.routeNativeElement!.querySelector<HTMLButtonElement>('app-favorite-toggle button')!;
+    expect(detailFavorite.getAttribute('aria-pressed')).toBe('true');
+    detailFavorite.click();
+    harness.fixture.detectChanges();
+    expect(TestBed.inject(FavoritesService).productIds()).toEqual([]);
+    expect(TestBed.inject(CartService).totalQuantity()).toBe(0);
 
     const backHref = harness.routeNativeElement!.querySelector('.back-link')!.getAttribute('href')!;
     await harness.navigateByUrl(backHref);
@@ -210,6 +225,7 @@ describe('ProductDetailComponent', () => {
     const checked = harness.routeNativeElement!
       .querySelector<HTMLInputElement>('input[name=brand]:checked')!;
     expect(checked).not.toBeNull();
+    expect(harness.routeNativeElement!.querySelector('app-favorite-toggle button')!.getAttribute('aria-pressed')).toBe('false');
   });
 
   // 僅已成功取得的商品能加入，且不自動離開詳情。
@@ -257,13 +273,16 @@ describe('ProductDetailComponent', () => {
   // 下架與暫時錯誤畫面皆不能加入未取得的商品。
   it('does not offer add controls for missing or failed products', async () => {
     await openDetail('/shop/1');
+    expect(harness.routeNativeElement!.querySelector('app-favorite-toggle')).toBeNull();
     pendingProduct(1).flush('missing', { status: 404, statusText: 'Not Found' });
     harness.fixture.detectChanges();
     expect(harness.routeNativeElement!.querySelector('.add-to-cart')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('app-favorite-toggle')).toBeNull();
     await router.navigateByUrl('/shop/2');
     pendingProduct(2).flush('failed', { status: 500, statusText: 'Server Error' });
     harness.fixture.detectChanges();
     expect(harness.routeNativeElement!.querySelector('.add-to-cart')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('app-favorite-toggle')).toBeNull();
     expect(TestBed.inject(CartService).totalQuantity()).toBe(0);
   });
 });

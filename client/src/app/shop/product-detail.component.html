@@ -24,6 +24,9 @@
         <p class="detail-meta">{{ product.productBrand }} · {{ product.productType }}</p>
         <h1 id="product-title">{{ product.name }}</h1>
         <p class="detail-price">{{ product.price | twdPrice }}</p>
+        <div class="favorite-action">
+          <app-favorite-toggle [productId]="product.id" [productName]="product.name" />
+        </div>
         <div class="cart-action">
           <button class="add-to-cart" type="button" (click)="addToCart()">加入購物車</button>
           <p class="cart-feedback" aria-live="polite">
