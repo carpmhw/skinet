@@ -6,6 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "test": "ng test",
+    "test:proxy": "vitest run --config vitest.proxy.config.ts",
+    "check:proxy": "tsc -p tsconfig.proxy.json --noEmit",
+    "lint:proxy": "eslint server functions vitest.proxy.config.ts",
     "lint": "ng lint",
     "e2e": "ng e2e"
   },

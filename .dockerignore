@@ -21,3 +21,6 @@ docs/superpowers
 .env
 .env.*
 !.env.example
+
+# 本機 Pages Functions 憑證不得傳至 builder 或進入中間層。
+**/.dev.vars*

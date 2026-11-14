@@ -27,6 +27,7 @@ SkiNet 是一個精簡的電子商務範例，示範乾淨的 ASP.NET Core API�
 - **根路徑相對圖片** — 商品圖片網址如 `/images/products/sb-ang1.png` 可適用於任何主機名稱，包括隨機的 Quick Tunnel 網址。
 - **SQLite 持久化** — 啟動時執行 EF Core 移轉與種子資料寫入；資料庫存放於掛載到 `/data` 的具名 Volume。
 - **選用 Quick Tunnel** — 需主動啟用的 Compose overlay，並具備 Cloudflare Email PIN 保護。
+- **選用公開 Pages** — 已備妥 Pages Functions 商品／圖片同源代理與獨立 Named Tunnel Compose；後端 Access 僅接受指定 Service Token，不要求訪客 PIN。實際 Cloudflare 部署尚未執行。
 - **已測試** — 包含 xUnit 整合測試，以及驗證 HTML、JSON、圖片、API 404 與 SQLite 持久化的容器冒煙測試。
 
 ## 技術堆疊
@@ -96,6 +97,18 @@ docker compose up -d --no-build
 ```
 
 正式部署請優先使用不可變的 `sha-` tag；`dev` 與 `master` 會隨分支更新。完整登入、visibility 與回復說明見 [DEPLOY.md](DEPLOY.md)。
+
+### 公開 Pages ＋ Named Tunnel（選用）
+
+Angular 可部署到 Pages，繼續呼叫 `/api/` 與 `/images/`；Functions 用伺服器端 Secret 連到 Access 保護的 `https://api.example.com`。實際 hostname 與憑證部署時填入，不能放進 Angular environment。
+
+- Pages runtime 範例：[`client/.dev.vars.example`](client/.dev.vars.example)。
+- 後端範例：[`.env.named.example`](.env.named.example)、[`docker-compose.named.yml`](docker-compose.named.yml)；與舊 Quick Tunnel 配置分開使用，預設不公開任何 port。
+- 代理只公開商品查詢與指定圖片的 GET／HEAD，不是通用反向代理或防爬機制。
+- Preview 預設不設定 production credentials，商品請求會回 `503`；Functions（包括圖片）受配額限制。
+- 前端 origin 改變時，原本 localStorage 購物車不會自動搬移。
+
+設定、Volume 保留、Access 政策與遠端驗收見 [部署指南](DEPLOY.md#公開-pages-與-named-tunnel)；配置準備不等於已上線。
 
 ### 本機執行
 

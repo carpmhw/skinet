@@ -11,6 +11,9 @@
 *.sln.docstates
 .env*
 !.env.example
+!.env.named.example
+.dev.vars*
+!.dev.vars.example
 .worktrees/
 .superpowers/
 
@@ -436,6 +439,10 @@ FodyWeavers.xsd
 .superpowers/
 openspec
 docs
+.agents
+.claude
+skills-lock.json
+
 
 # OS files
 .DS_Store

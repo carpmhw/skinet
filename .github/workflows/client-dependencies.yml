@@ -27,6 +27,12 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Lint Angular application
         run: npm run lint
+      - name: Lint Pages proxy
+        run: npm run lint:proxy
+      - name: Typecheck Pages proxy
+        run: npm run check:proxy
+      - name: Test Pages proxy
+        run: npm run test:proxy
       - name: Build Angular application
         run: npm run build -- --configuration production
       - name: Run unit tests
