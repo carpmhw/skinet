@@ -11,6 +11,9 @@ import { NotFoundComponent } from '../not-found.component';
 import { ProductImageComponent } from './product-image.component';
 import { ProductListComponent } from './product-list.component';
 import { TwdPricePipe } from './twd-price.pipe';
+import { FavoriteToggleComponent } from '../favorites/favorite-toggle.component';
+import { FavoritesService } from '../favorites/favorites.service';
+import { CartService } from '../cart/cart.service';
 
 describe('ProductListComponent', () => {
   let http: HttpTestingController;
@@ -24,8 +27,9 @@ describe('ProductListComponent', () => {
   ];
 
   beforeEach(async () => {
+    localStorage.removeItem('skinet.favorites.v1');
     TestBed.configureTestingModule({
-      declarations: [ProductListComponent, NotFoundComponent, ProductImageComponent, TwdPricePipe],
+      declarations: [ProductListComponent, NotFoundComponent, ProductImageComponent, TwdPricePipe, FavoriteToggleComponent],
       imports: [FormsModule, RouterModule],
       providers: [
         provideZoneChangeDetection(),
@@ -38,7 +42,10 @@ describe('ProductListComponent', () => {
     router = TestBed.inject(Router);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    localStorage.removeItem('skinet.favorites.v1');
+  });
 
   // 建立列表並等待初始查詢完成，讓測試能直接斷言畫面狀態。
   async function openList(url = '/shop'): Promise<ProductListComponent> {
@@ -89,6 +96,31 @@ describe('ProductListComponent', () => {
       productBrand: 'Angular',
     };
   }
+
+  // 收藏按鈕與詳情連結分離，切換不觸發路由或列表重新查詢。
+  it('toggles a favorite without navigation, query changes, product refetches or cart changes', async () => {
+    await openList('/shop?search=Angular&brandId=1&typeId=1&sort=priceAsc&pageIndex=2');
+    flushLookups();
+    pendingProducts().flush(page(2, 12, [product(7, 'Angular board')]));
+    harness.fixture.detectChanges();
+    const url = router.url;
+    const cart = TestBed.inject(CartService).items();
+    const button = harness.routeNativeElement!.querySelector<HTMLButtonElement>('app-favorite-toggle button')!;
+    expect(button).not.toBeNull();
+    expect(button.closest('a')).toBeNull();
+    button.click();
+    await harness.fixture.whenStable();
+    harness.fixture.detectChanges();
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(TestBed.inject(FavoritesService).productIds()).toEqual([7]);
+    expect(TestBed.inject(CartService).items()).toEqual(cart);
+    expect(router.url).toBe(url);
+    http.expectNone(request => request.url.includes('products'));
+    const href = harness.routeNativeElement!.querySelector('.product-link')!.getAttribute('href')!;
+    expect(href).toContain('/shop/7?');
+    expect(new URLSearchParams(href.split('?')[1]).get('pageIndex')).toBe('2');
+    expect(new URLSearchParams(href.split('?')[1]).get('search')).toBe('Angular');
+  });
 
   it('initializes controls and the request from the url', async () => {
     const component = await openList('/shop?search=Angular&pageIndex=2');
