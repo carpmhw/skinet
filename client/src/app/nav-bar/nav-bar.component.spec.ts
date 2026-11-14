@@ -45,6 +45,8 @@ describe('NavBarComponent favorites', () => {
     expect(link.textContent).toContain('收藏（1）');
     expect(fixture.nativeElement.querySelectorAll('[role="status"]').length).toBe(1);
     expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('已取消收藏');
+    expect(fixture.nativeElement.querySelector('nav a[href="/recently-viewed"]').textContent.trim()).toBe('最近瀏覽');
+    expect(fixture.nativeElement.querySelectorAll('nav a').length).toBe(4);
   });
 
   it('uses one visible polite region for action feedback and storage warnings', () => {

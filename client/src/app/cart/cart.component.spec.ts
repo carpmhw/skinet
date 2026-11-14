@@ -11,6 +11,7 @@ import { ProductImageComponent } from '../shop/product-image.component';
 import { TwdPricePipe } from '../shop/twd-price.pipe';
 import { CartComponent } from './cart.component';
 import { CartItem, CartService } from './cart.service';
+import { RecentViewsService } from '../recently-viewed/recent-views.service';
 
 // 經由路由、真實購物車與 HTTP 測試邊界驗證使用者操作。
 describe('CartComponent', () => {
@@ -25,6 +26,7 @@ describe('CartComponent', () => {
   // 每例獨立初始化路由與自己的儲存資料。
   beforeEach(() => {
     localStorage.removeItem(key);
+    localStorage.setItem('skinet.recently-viewed.v1', '{"version":1,"productIds":[2,1]}');
     TestBed.configureTestingModule({
       declarations: [CartComponent, NotFoundComponent, ProductImageComponent, TwdPricePipe],
       imports: [RouterModule],
@@ -39,6 +41,7 @@ describe('CartComponent', () => {
     http.verify();
     harness?.fixture.nativeElement.remove();
     localStorage.removeItem(key);
+    localStorage.removeItem('skinet.recently-viewed.v1');
   });
 
   // 在建立 root service 前放入資料，模擬直接開啟與重新整理。
@@ -87,6 +90,8 @@ describe('CartComponent', () => {
 
   // 使用當次 API 價格及整數分運算，改量不重查資料。
   it('renders fresh prices in stored order and calculates decimal totals without refetching on edits', async () => {
+    const recent = TestBed.inject(RecentViewsService);
+    const raw = localStorage.getItem('skinet.recently-viewed.v1');
     await open([{ productId: 1, quantity: 3 }, { productId: 2, quantity: 3 }]);
     expect(harness.routeNativeElement!.querySelector('.cart-total')).toBeNull();
     pending(2).flush({ ...board, id: 2, name: 'Small item', price: 0.1 });
@@ -108,6 +113,8 @@ describe('CartComponent', () => {
     expect(harness.routeNativeElement!.querySelector('.cart-total')!.textContent).toContain('NT$50.28');
     await remove(3);
     http.expectNone(request => request.url.includes('products'));
+    expect(recent.productIds()).toEqual([2, 1]);
+    expect(localStorage.getItem('skinet.recently-viewed.v1')).toBe(raw);
   });
 
   // 不合法輸入需恢復有效數量，不能誤當成移除。

@@ -15,6 +15,7 @@ import { TwdPricePipe } from './shop/twd-price.pipe';
 import { CartComponent } from './cart/cart.component';
 import { FavoritesComponent } from './favorites/favorites.component';
 import { FavoriteToggleComponent } from './favorites/favorite-toggle.component';
+import { RecentlyViewedComponent } from './recently-viewed/recently-viewed.component';
 
 @NgModule({ declarations: [
         AppComponent,
@@ -26,7 +27,8 @@ import { FavoriteToggleComponent } from './favorites/favorite-toggle.component';
         TwdPricePipe,
         CartComponent,
         FavoritesComponent,
-        FavoriteToggleComponent
+        FavoriteToggleComponent,
+        RecentlyViewedComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         AppRoutingModule,

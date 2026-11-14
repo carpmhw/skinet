@@ -1,0 +1,62 @@
+<section class="recently-viewed-page" aria-labelledby="recently-viewed-title">
+  <header class="recent-heading">
+    <h1 id="recently-viewed-title">最近瀏覽</h1>
+    <p>僅在此瀏覽器保留最近12件商品，可隨時清除；共用裝置上的其他使用者也可能看到。</p>
+    @if (rows().length > 0) {
+      <button class="clear-history" type="button" (click)="clearHistory()">清除瀏覽紀錄</button>
+    }
+  </header>
+
+  <p class="recent-feedback" role="status" aria-atomic="true">
+    @if (recentViews.storageWarning(); as warning) {
+      {{ warning }}
+    } @else {
+      {{ clearFeedback() }}
+    }
+  </p>
+
+  @if (rows().length === 0) {
+    <div class="empty-history">
+      <h2 id="empty-recently-viewed-title" tabindex="-1">尚無最近瀏覽的商品</h2>
+      <p>開啟商品詳情後，就能在這裡找回看過的裝備。</p>
+      <a class="continue-shopping" routerLink="/shop">瀏覽商品</a>
+    </div>
+  } @else {
+    <ol class="recent-list" role="list">
+      @for (row of rows(); track row.productId) {
+        <li class="recent-row" [attr.data-product-id]="row.productId">
+          @if (row.product; as product) {
+            <div class="recent-picture">
+              <app-product-image [src]="product.pictureUrl" [alt]="product.name" />
+            </div>
+          }
+          <div class="recent-product" [class.unavailable-product]="!row.product">
+            <h2 class="recent-product-title" tabindex="-1">
+              @if (row.product; as product) {
+                <a [routerLink]="['/shop', row.productId]">{{ product.name }}</a>
+              } @else if (row.status === 'loading') {
+                正在載入商品 #{{ row.productId }}…
+              } @else if (row.status === 'unavailable') {
+                商品 #{{ row.productId }} 已無法取得
+              } @else {
+                商品 #{{ row.productId }} 載入失敗
+              }
+            </h2>
+            @if (row.product; as product) {
+              <p>{{ product.productBrand }} · {{ product.productType }}</p>
+              <p class="recent-price">{{ product.price | twdPrice }}</p>
+            } @else if (row.status === 'unavailable') {
+              <p>商品可能已下架，瀏覽紀錄仍會保留。</p>
+            } @else if (row.status === 'error') {
+              <p>請確認網路後重試，瀏覽紀錄會保留。</p>
+              <button class="retry-product" type="button"
+                [attr.aria-label]="'重試商品 #' + row.productId"
+                (click)="retryProduct(row.productId)">重試商品</button>
+            }
+          </div>
+        </li>
+      }
+    </ol>
+    <a class="continue-shopping" routerLink="/shop">繼續瀏覽商品</a>
+  }
+</section>
