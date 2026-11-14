@@ -12,6 +12,7 @@ import { ProductImageComponent } from '../shop/product-image.component';
 import { TwdPricePipe } from '../shop/twd-price.pipe';
 import { FavoritesComponent } from './favorites.component';
 import { FavoritesService } from './favorites.service';
+import { RecentViewsService } from '../recently-viewed/recent-views.service';
 
 describe('FavoritesComponent', () => {
   let http: HttpTestingController;
@@ -25,6 +26,7 @@ describe('FavoritesComponent', () => {
   // 使用正式路由與真實商品服務，只替換HTTP傳輸邊界。
   beforeEach(() => {
     localStorage.removeItem(key);
+    localStorage.setItem('skinet.recently-viewed.v1', '{"version":1,"productIds":[2,17]}');
     TestBed.configureTestingModule({
       declarations: [FavoritesComponent, NotFoundComponent, ProductImageComponent, TwdPricePipe],
       imports: [AppRoutingModule, RouterModule],
@@ -39,6 +41,7 @@ describe('FavoritesComponent', () => {
     harness?.fixture.nativeElement.remove();
     http.verify();
     localStorage.removeItem(key);
+    localStorage.removeItem('skinet.recently-viewed.v1');
   });
 
   // 在root service初始化前放入ID，模擬重新整理收藏頁。
@@ -79,6 +82,8 @@ describe('FavoritesComponent', () => {
   });
 
   it('renders fresh API prices in stored order even when responses arrive out of order', async () => {
+    const recent = TestBed.inject(RecentViewsService);
+    const raw = localStorage.getItem('skinet.recently-viewed.v1');
     await open([17, 2]);
     expect(row(17).textContent).toContain('正在載入');
     pending(2).flush({ ...board, id: 2, name: 'Second board', price: 100 });
@@ -93,6 +98,8 @@ describe('FavoritesComponent', () => {
     expect(row(17).querySelector('app-product-image')).not.toBeNull();
     expect(row(17).querySelector('button')!.closest('a')).toBeNull();
     expect(JSON.parse(localStorage.getItem(key)!)).toEqual({ version: 1, productIds: [17, 2] });
+    expect(recent.productIds()).toEqual([2, 17]);
+    expect(localStorage.getItem('skinet.recently-viewed.v1')).toBe(raw);
   });
 
   it('retains missing and failed products, and retries only the failed row', async () => {

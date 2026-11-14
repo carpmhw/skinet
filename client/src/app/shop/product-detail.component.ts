@@ -7,6 +7,7 @@ import { IProduct } from '../models/product';
 import { parseProductId, parseShopQuery, toShopParams } from './shop-query';
 import { ShopService } from './shop.service';
 import { CartService } from '../cart/cart.service';
+import { RecentViewsService } from '../recently-viewed/recent-views.service';
 
 @Component({
   selector: 'app-product-detail',
@@ -16,6 +17,7 @@ import { CartService } from '../cart/cart.service';
 })
 export class ProductDetailComponent implements OnInit, OnDestroy {
   readonly cart = inject(CartService);
+  readonly recentViews = inject(RecentViewsService);
   private readonly route = inject(ActivatedRoute);
   private readonly shop = inject(ShopService);
   private readonly title = inject(Title);
@@ -91,6 +93,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         this.product = product;
         this.loading = false;
         this.title.setTitle(`${product.name} | SkiNet`);
+        this.recentViews.record(product.id);
       },
       error: (error: HttpErrorResponse) => {
         this.loading = false;

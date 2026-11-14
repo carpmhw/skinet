@@ -1,4 +1,7 @@
 <section class="product-detail" aria-labelledby="product-title">
+  @if (recentViews.storageWarning(); as warning) {
+    <p class="storage-warning recent-views-warning" role="status">{{ warning }}</p>
+  }
   @if (loading) {
     <p class="detail-status" role="status">正在載入商品…</p>
   } @else if (notFound) {

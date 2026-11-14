@@ -5,6 +5,7 @@ import { ProductDetailComponent } from './shop/product-detail.component';
 import { ProductListComponent } from './shop/product-list.component';
 import { CartComponent } from './cart/cart.component';
 import { FavoritesComponent } from './favorites/favorites.component';
+import { RecentlyViewedComponent } from './recently-viewed/recently-viewed.component';
 
 const routes: Routes = [
   { path: '', redirectTo: 'shop', pathMatch: 'full' },
@@ -12,6 +13,7 @@ const routes: Routes = [
   { path: 'shop/:id', component: ProductDetailComponent },
   { path: 'cart', component: CartComponent },
   { path: 'favorites', component: FavoritesComponent },
+  { path: 'recently-viewed', component: RecentlyViewedComponent },
   { path: '**', component: NotFoundComponent },
 ];
 

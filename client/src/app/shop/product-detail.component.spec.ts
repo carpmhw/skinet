@@ -16,6 +16,7 @@ import { CartService } from '../cart/cart.service';
 import { vi } from 'vitest';
 import { FavoriteToggleComponent } from '../favorites/favorite-toggle.component';
 import { FavoritesService } from '../favorites/favorites.service';
+import { RecentViewsService } from '../recently-viewed/recent-views.service';
 
 describe('ProductDetailComponent', () => {
   let http: HttpTestingController;
@@ -40,6 +41,7 @@ describe('ProductDetailComponent', () => {
   };
 
   beforeEach(async () => {
+    localStorage.removeItem('skinet.recently-viewed.v1');
     localStorage.removeItem('skinet.cart.v1');
     localStorage.removeItem('skinet.favorites.v1');
     TestBed.configureTestingModule({
@@ -69,6 +71,7 @@ describe('ProductDetailComponent', () => {
     vi.restoreAllMocks();
     localStorage.removeItem('skinet.cart.v1');
     localStorage.removeItem('skinet.favorites.v1');
+    localStorage.removeItem('skinet.recently-viewed.v1');
   });
 
   // 開啟詳情頁並回傳實際渲染的元件。
@@ -84,6 +87,81 @@ describe('ProductDetailComponent', () => {
         candidate.method === 'GET' && candidate.url === `${environment.apiUrl}products/${id}`,
     );
   }
+
+  // 缺少成功回應記錄會使既有ID無法前移；載入前記錄則會過早變更。
+  it('records returned IDs only after successful detail responses', async () => {
+    localStorage.setItem('skinet.recently-viewed.v1', '{"version":1,"productIds":[2,17]}');
+    await openDetail('/shop/17');
+    const recent = TestBed.inject(RecentViewsService);
+    expect(recent.productIds()).toEqual([2, 17]);
+    pendingProduct(17).flush({ ...boots, id: 17 });
+    harness.fixture.detectChanges();
+    expect(recent.productIds()).toEqual([17, 2]);
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    await harness.navigateByUrl('/missing');
+    await harness.navigateByUrl('/shop/17');
+    pendingProduct(17).flush({ ...boots, id: 17 });
+    expect(write).not.toHaveBeenCalled();
+    await harness.navigateByUrl('/missing');
+    await harness.navigateByUrl('/shop/17');
+    pendingProduct(17).flush({ ...boots, id: 2 });
+    expect(recent.productIds()).toEqual([2, 17]);
+    expect(write).toHaveBeenCalledTimes(1);
+    http.expectNone(request => request.url.includes('products'));
+  });
+
+  // 錯誤或取消不能變動舊紀錄，成功重試才前移。
+  it.each([404, 500, 0])('retains history on failure %s and records a successful retry', async status => {
+    localStorage.setItem('skinet.recently-viewed.v1', '{"version":1,"productIds":[2,17]}');
+    const component = await openDetail('/shop/17');
+    const request = pendingProduct(17);
+    if (status === 0) request.error(new ProgressEvent('error'));
+    else request.flush({}, { status, statusText: 'Failed' });
+    const recent = TestBed.inject(RecentViewsService);
+    expect(recent.productIds()).toEqual([2, 17]);
+    component.retryProduct();
+    expect(recent.productIds()).toEqual([2, 17]);
+    pendingProduct(17).flush({ ...boots, id: 17 });
+    expect(recent.productIds()).toEqual([17, 2]);
+  });
+
+  // 舊商品請求須在切換或離頁時取消，不能寫入瀏覽紀錄。
+  it('cancels obsolete detail requests without recording them', async () => {
+    const component = await openDetail('/shop/17');
+    const obsolete = pendingProduct(17);
+    await harness.navigateByUrl('/shop/2');
+    expect(harness.routeDebugElement!.componentInstance).toBe(component);
+    expect(obsolete.cancelled).toBe(true);
+    pendingProduct(2).flush({ ...boots, id: 2 });
+    expect(TestBed.inject(RecentViewsService).productIds()).toEqual([2]);
+    await harness.navigateByUrl('/shop/3');
+    const leaving = pendingProduct(3);
+    await harness.navigateByUrl('/missing');
+    expect(leaving.cancelled).toBe(true);
+    expect(TestBed.inject(RecentViewsService).productIds()).toEqual([2]);
+  });
+
+  // 寫入錯誤不得改變詳情成功畫面或購物車、收藏操作。
+  it('shows one recent-storage warning without blocking loaded product controls', async () => {
+    await openDetail('/shop/17?brandId=1');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    pendingProduct(17).flush({ ...boots, id: 17 });
+    harness.fixture.detectChanges();
+    const element = harness.routeNativeElement!;
+    expect(element.textContent).toContain('NT$200');
+    expect(element.querySelectorAll('.recent-views-warning[role="status"]').length).toBe(1);
+    expect(element.querySelector('.recent-views-warning')!.textContent)
+      .toContain('瀏覽紀錄暫時無法儲存，重新整理後可能遺失');
+    expect(element.querySelector('app-favorite-toggle button')).not.toBeNull();
+    element.querySelector<HTMLButtonElement>('.add-to-cart')!.click();
+    harness.fixture.detectChanges();
+    expect(TestBed.inject(CartService).items()).toEqual([{ productId: 17, quantity: 1 }]);
+    expect(element.querySelector('.cart-feedback')!.textContent).toContain('已加入購物車');
+    expect(TestBed.inject(FavoritesService).productIds()).toEqual([]);
+    expect(router.url).toBe('/shop/17?brandId=1');
+  });
 
   it('renders the product fields and keeps the catalogue conditions in the back link', async () => {
     await openDetail('/shop/1?brandId=1&sort=priceAsc');
@@ -131,6 +209,7 @@ describe('ProductDetailComponent', () => {
   });
 
   it('does not request an invalid product id', async () => {
+    localStorage.setItem('skinet.recently-viewed.v1', '{"version":1,"productIds":[2,17]}');
     harness = await RouterTestingHarness.create('/shop/0');
     for (const invalid of ['0', '-1', '1.5', 'abc']) {
       if (invalid !== '0') {
@@ -145,6 +224,7 @@ describe('ProductDetailComponent', () => {
         candidate =>
           candidate.method === 'GET' && candidate.url.startsWith(`${environment.apiUrl}products/`),
       );
+      expect(TestBed.inject(RecentViewsService).productIds()).toEqual([2, 17]);
     }
   });
 

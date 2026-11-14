@@ -14,6 +14,7 @@ import { TwdPricePipe } from './twd-price.pipe';
 import { FavoriteToggleComponent } from '../favorites/favorite-toggle.component';
 import { FavoritesService } from '../favorites/favorites.service';
 import { CartService } from '../cart/cart.service';
+import { RecentViewsService } from '../recently-viewed/recent-views.service';
 
 describe('ProductListComponent', () => {
   let http: HttpTestingController;
@@ -28,6 +29,7 @@ describe('ProductListComponent', () => {
 
   beforeEach(async () => {
     localStorage.removeItem('skinet.favorites.v1');
+    localStorage.setItem('skinet.recently-viewed.v1', '{"version":1,"productIds":[2,7]}');
     TestBed.configureTestingModule({
       declarations: [ProductListComponent, NotFoundComponent, ProductImageComponent, TwdPricePipe, FavoriteToggleComponent],
       imports: [FormsModule, RouterModule],
@@ -45,6 +47,7 @@ describe('ProductListComponent', () => {
   afterEach(() => {
     http.verify();
     localStorage.removeItem('skinet.favorites.v1');
+    localStorage.removeItem('skinet.recently-viewed.v1');
   });
 
   // 建立列表並等待初始查詢完成，讓測試能直接斷言畫面狀態。
@@ -123,6 +126,8 @@ describe('ProductListComponent', () => {
   });
 
   it('initializes controls and the request from the url', async () => {
+    const recent = TestBed.inject(RecentViewsService);
+    const raw = localStorage.getItem('skinet.recently-viewed.v1');
     const component = await openList('/shop?search=Angular&pageIndex=2');
     flushLookups();
 
@@ -142,6 +147,8 @@ describe('ProductListComponent', () => {
     expect(document.title).toBe('商品目錄 | SkiNet');
     expect(harness.routeNativeElement!.textContent).toContain('Angular Speedster Board 2000');
     expect(harness.routeNativeElement!.textContent).toContain('NT$120');
+    expect(recent.productIds()).toEqual([2, 7]);
+    expect(localStorage.getItem('skinet.recently-viewed.v1')).toBe(raw);
   });
 
   it('does not query while the search field is only being typed in', async () => {
