@@ -36,7 +36,8 @@ it('preserves query while replacing visitor credentials with runtime secrets', a
   const visitor = new Request(`https://shop.example.com/api/products${query}`, {
     headers: {
       Accept: 'application/json', Cookie: 'visitor=1', Authorization: 'Bearer visitor',
-      Host: 'evil.example', 'CF-Access-Client-Id': 'forged', 'CF-Access-Client-Secret': 'forged'
+      Host: 'evil.example', 'CF-Access-Client-Id': 'forged', 'CF-Access-Client-Secret': 'forged',
+      'User-Agent': 'visitor-controlled-agent'
     }
   });
   const fetcher = vi.fn<typeof fetch>(async (input) => {
@@ -46,7 +47,8 @@ it('preserves query while replacing visitor credentials with runtime secrets', a
     expect(upstream.redirect).toBe('manual');
     expect(Object.fromEntries(upstream.headers)).toEqual({
       accept: 'application/json', 'cf-access-client-id': 'private-id',
-      'cf-access-client-secret': 'private-secret'
+      'cf-access-client-secret': 'private-secret',
+      'user-agent': 'SkiNet-Pages-Proxy/1.0'
     });
     return new Response('{"data":[{"id":1}]}', {
       headers: {
@@ -61,6 +63,26 @@ it('preserves query while replacing visitor credentials with runtime secrets', a
   expect(Object.fromEntries(response.headers)).toEqual({
     'cache-control': 'no-store', 'content-type': 'application/json'
   });
+});
+
+// 模擬上游拒絕空UA，確認API、圖片及HEAD都有固定的代理識別。
+it.each([
+  ['/api/products', 'GET', undefined, 'application/json'],
+  ['/images/products/a.png', 'GET', 'visitor-controlled-agent', 'image/png'],
+  ['/api/products', 'HEAD', 'visitor-controlled-agent', 'application/json']
+] as const)('uses a server-owned User-Agent for %s %s', async (path, method, agent, contentType) => {
+  const visitor = new Request(`https://shop.example.com${path}`, {
+    method, headers: agent ? { 'User-Agent': agent } : {}
+  });
+  const fetcher = vi.fn<typeof fetch>(async (input) => new Response('{}', {
+    status: (input as Request).headers.get('User-Agent') ? 200 : 403,
+    headers: { 'Content-Type': contentType }
+  }));
+  const response = await proxyCatalogue(visitor, env, fetcher);
+  const upstream = fetcher.mock.calls[0][0] as Request;
+  expect(upstream.headers.get('User-Agent')).toBe('SkiNet-Pages-Proxy/1.0');
+  expect(response.status).toBe(200);
+  if (method === 'HEAD') expect(response.body).toBeNull();
 });
 
 it.each(['/api/products', '/api/products/17', '/api/products/brands', '/api/products/types', '/api/products/'])(

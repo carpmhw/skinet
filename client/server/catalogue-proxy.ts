@@ -39,7 +39,9 @@ export async function proxyCatalogue(
   try {
     headers = new Headers({
       'CF-Access-Client-Id': env.CF_ACCESS_CLIENT_ID,
-      'CF-Access-Client-Secret': env.CF_ACCESS_CLIENT_SECRET
+      'CF-Access-Client-Secret': env.CF_ACCESS_CLIENT_SECRET,
+      // 明確識別代理，避免空UA被上游封鎖；不採用訪客提供的值。
+      'User-Agent': 'SkiNet-Pages-Proxy/1.0'
     });
   } catch {
     return failure(503, 'Proxy is not configured');

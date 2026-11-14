@@ -423,6 +423,7 @@ Functions 有請求／計費配額，圖片也算請求；所有代理回應 `Ca
 
 - GET／HEAD：`/api/products`、`/api/products/{正整數 id}`、`/api/products/brands`、`/api/products/types`，以及 `/images/products/{單一檔名}`，圖片副檔名限 png／jpg／jpeg／webp／gif／avif。
 - 保留列表 query；不轉送訪客 Cookie、Authorization、Host 或 Access headers。HEAD 上游使用 GET，回應不含 body。
+- 上游固定使用 `User-Agent: SkiNet-Pages-Proxy/1.0`，不轉送訪客的User-Agent，避免空值被安全規則封鎖；此識別不是認證，Access仍須驗證Service Token，不應依UA授予存取權。
 - 未允許路徑回固定 `404`，其他 method 回 `405`。缺失／無效 runtime bindings 為 `503 Proxy is not configured`，不會 fallback 到公開後端。
 - 認證拒絕、redirect、非預期 HTML 或網路錯誤為 `502 Backend unavailable`。檢查 Service Token 是否過期、政策是否 Service Auth、API_ORIGIN 是否同 hostname、Tunnel route 是否正確，以及 backend 是否正常；不要用 Bypass／CORS 放寬代替修復。
 - 普通 API JSON 錯誤保留狀態碼，圖片不存在回 `404`；不透傳 Set-Cookie、認證 headers 或登入 redirect。
