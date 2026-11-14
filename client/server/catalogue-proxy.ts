@@ -53,16 +53,30 @@ export async function proxyCatalogue(
   try {
     upstream = await fetcher(new Request(target, { method: 'GET', headers, redirect: 'manual' }));
   } catch {
+    // 不記錄原始例外；其訊息可能包含網址、標頭或憑證。
+    console.warn('catalogue_proxy', { reason: 'fetch_failed' });
     return failure(502, 'Backend unavailable');
   }
   const contentType = upstream.headers.get('Content-Type') ?? '';
   const mime = contentType.split(';')[0].trim().toLowerCase();
   const rejected = (upstream.status >= 300 && upstream.status < 400) ||
     upstream.status === 401 || upstream.status === 403;
-  const expectedType = api
-    ? /^application\/(?:json|[a-z0-9!#$&^_.+-]+\+json)$/.test(mime)
-    : /^image\/[a-z0-9.+-]+$/.test(mime);
+  const jsonType = /^application\/(?:json|[a-z0-9!#$&^_.+-]+\+json)$/.test(mime);
+  const imageType = /^image\/[a-z0-9.+-]+$/.test(mime);
+  const expectedType = api ? jsonType : imageType;
   if (rejected || !expectedType || (image && !upstream.ok)) {
+    if (!(image && upstream.status === 404)) {
+      const reason = upstream.status >= 300 && upstream.status < 400 ? 'upstream_redirect'
+        : upstream.status === 401 || upstream.status === 403 ? 'upstream_auth'
+        : !expectedType ? 'unexpected_content_type' : 'upstream_status';
+      // 僅輸出固定分類與狀態碼，不輸出原始 MIME、網址、標頭或回應內容。
+      console.warn('catalogue_proxy', {
+        reason,
+        status: upstream.status,
+        contentType: jsonType ? 'json' : imageType ? 'image'
+          : mime === 'text/html' ? 'html' : !mime ? 'missing' : 'other'
+      });
+    }
     await upstream.body?.cancel();
     return image && upstream.status === 404
       ? failure(404, 'Not found') : failure(502, 'Backend unavailable');

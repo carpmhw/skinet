@@ -427,6 +427,26 @@ Functions 有請求／計費配額，圖片也算請求；所有代理回應 `Ca
 - 認證拒絕、redirect、非預期 HTML 或網路錯誤為 `502 Backend unavailable`。檢查 Service Token 是否過期、政策是否 Service Auth、API_ORIGIN 是否同 hostname、Tunnel route 是否正確，以及 backend 是否正常；不要用 Bypass／CORS 放寬代替修復。
 - 普通 API JSON 錯誤保留狀態碼，圖片不存在回 `404`；不透傳 Set-Cookie、認證 headers 或登入 redirect。
 
+#### Pages 502 的安全診斷日誌
+
+部署包含診斷程式碼的版本後，到 Pages → Deployments → 選目前 Production 部署 → Functions 的即時日誌（介面可能顯示 Real-time logs／Begin log stream），開始串流後重新請求 `/api/products`，搜尋 `catalogue_proxy`。此變更只增加伺服器日誌，不會修復或揭露原本502的原因給瀏覽器。
+
+```text
+catalogue_proxy { reason: "upstream_auth", status: 403, contentType: "html" }
+```
+
+| reason | 意義與下一步 |
+|---|---|
+| `upstream_auth` | 上游401／403；檢查同一組Service Token與Access政策，也可能是其他上游存取控制，不能單憑狀態碼斷定原因 |
+| `upstream_redirect` | 上游3xx；檢查是否為Access登入或網域轉址，不會自動跟隨 |
+| `unexpected_content_type` | 上游不是預期JSON／圖片；可能是登入頁、錯誤頁或路由錯誤 |
+| `upstream_status` | 圖片上游回非成功狀態（預期404除外） |
+| `fetch_failed` | 送出請求時失敗；沒有上游status／contentType，需另查DNS、TLS或執行環境 |
+
+`contentType` 只會是固定分類 `json`／`image`／`html`／`missing`／`other`，不記錄原始標頭值。診斷不記錄Token、URL／query、headers、body或原始例外。正常回應、一般API JSON錯誤與圖片404不產生此診斷；公開錯誤仍為原本固定JSON。只需分享 `catalogue_proxy` 診斷物件，不要分享整份可能含其他敏感資訊的日誌。
+
+Access Service Token 屬於non-identity authentication；一般Dashboard的Access登入紀錄不提供這類事件，需使用官方GraphQL Analytics API查詢。看不到一般登入紀錄不能用來判斷請求未到達。
+
 ### 5. 遠端驗收（目前全部 NOT RUN）
 
 本機測試不能代替以下驗收，需填入真實設定並獲授權部署：
