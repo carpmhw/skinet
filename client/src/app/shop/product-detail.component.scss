@@ -160,4 +160,4 @@
     margin: 0 0 12px;
   }
 }
-.favorite-action { margin-bottom: 16px; }
+.favorite-action { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }

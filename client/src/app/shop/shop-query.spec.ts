@@ -2,6 +2,22 @@ import { convertToParamMap } from '@angular/router';
 import { parseShopQuery, toShopParams } from './shop-query';
 
 describe('shop query contract', () => {
+  // 價格正規化不應改動既有頁碼，零也必須寫入網址。
+  it('normalizes valid price bounds without changing the page', () => {
+    const query = parseShopQuery(convertToParamMap({
+      minPrice: '000.00', maxPrice: '0019.90', pageIndex: '2',
+    }));
+    expect(query).toMatchObject({ valid: true, minPriceCents: 0, maxPriceCents: 1990 });
+    expect(toShopParams(query)).toEqual({ minPrice: '0', maxPrice: '19.9', pageIndex: 2 });
+  });
+
+  // 無效價格需可往返詳情，不可默默被丟棄成不限。
+  it('retains invalid price query inputs instead of widening the range', () => {
+    const query = parseShopQuery(convertToParamMap({ minPrice: '1e2', maxPrice: ' 20 ' }));
+    expect(query).toMatchObject({ valid: false, minPriceInput: '1e2', maxPriceInput: ' 20 ' });
+    expect(toShopParams(query)).toEqual({ minPrice: '1e2', maxPrice: ' 20 ' });
+  });
+
   it('serializes the default query to an empty params object', () => {
     expect(toShopParams(parseShopQuery(convertToParamMap({})))).toEqual({});
   });
@@ -41,6 +57,7 @@ describe('shop query contract', () => {
 
   it('round-trips a normalized query through the url contract', () => {
     const query = {
+      valid: true as const, minPriceCents: null, maxPriceCents: null,
       search: 'Core',
       brandId: 2,
       typeId: 3,
@@ -52,7 +69,8 @@ describe('shop query contract', () => {
 
   it('omits default values from the serialized url', () => {
     expect(
-      toShopParams({ search: '', brandId: null, typeId: null, sort: 'name', pageIndex: 1 }),
+      toShopParams({ search: '', brandId: null, typeId: null, sort: 'name', pageIndex: 1,
+        valid: true, minPriceCents: null, maxPriceCents: null }),
     ).toEqual({});
   });
 });

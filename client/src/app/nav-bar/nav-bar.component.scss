@@ -43,7 +43,7 @@ nav a:hover,
   color: #545b63;
 }
 
-.favorites-feedback {
+.favorites-feedback, .comparison-feedback {
   max-width: 1200px;
   min-block-size: 24px;
   margin: 8px auto 0;
@@ -64,5 +64,5 @@ nav a:focus-visible, .wordmark:focus-visible { outline: 2px solid #141414; outli
   .tagline {
     display: none;
   }
-  .favorites-feedback { padding: 0 16px; }
+  .favorites-feedback, .comparison-feedback { padding: 0 16px; }
 }

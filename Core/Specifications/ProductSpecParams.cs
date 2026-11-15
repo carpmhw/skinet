@@ -12,6 +12,8 @@ namespace Core.Specifications
         }
         public int? BrandId { get; set; }
         public int? TypeId { get; set; }
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
         public string Sort { get; set; }
 
         private string _search;

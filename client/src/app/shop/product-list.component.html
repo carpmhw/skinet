@@ -8,6 +8,43 @@
     <details class="filters" [open]="filtersOpen">
       <summary>篩選商品</summary>
       <div class="filter-content">
+        <div role="search" aria-label="價格篩選">
+          <form class="price-form" aria-labelledby="price-title" (ngSubmit)="submitPriceRange()" novalidate>
+            <fieldset>
+              <legend id="price-title">價格範圍（新臺幣）</legend>
+              <p id="price-hint" class="lookup-note">可只填一邊；最多兩位小數，上限99,999,999.99。</p>
+              <div class="field">
+                <label for="min-price">最低價格</label>
+                <input #minPriceField id="min-price" name="minPrice" type="text" inputmode="decimal"
+                  enterkeyhint="done" [ngModel]="minPriceInput" (ngModelChange)="editPrice('minPrice', $event)"
+                  [attr.aria-invalid]="priceErrors.minPrice ? 'true' : 'false'"
+                  [attr.aria-describedby]="priceErrors.minPrice ? 'price-hint min-price-error' : 'price-hint'" />
+                @if (priceErrors.minPrice) {
+                  <p id="min-price-error" class="price-error">{{ priceErrors.minPrice }}</p>
+                }
+              </div>
+              <div class="field">
+                <label for="max-price">最高價格</label>
+                <input #maxPriceField id="max-price" name="maxPrice" type="text" inputmode="decimal"
+                  enterkeyhint="done" [ngModel]="maxPriceInput" (ngModelChange)="editPrice('maxPrice', $event)"
+                  [attr.aria-invalid]="priceErrors.maxPrice ? 'true' : 'false'"
+                  [attr.aria-describedby]="priceErrors.maxPrice ? 'price-hint max-price-error' : 'price-hint'" />
+                @if (priceErrors.maxPrice) {
+                  <p id="max-price-error" class="price-error">{{ priceErrors.maxPrice }}</p>
+                }
+              </div>
+              @if (priceNotApplied) {
+                <p class="price-error">價格尚未套用</p>
+              }
+              <div class="price-actions">
+                <button class="apply-prices" type="submit">套用價格</button>
+                @if (hasPrices) {
+                  <button class="clear-prices" type="button" (click)="clearPrices()">清除價格</button>
+                }
+              </div>
+            </fieldset>
+          </form>
+        </div>
         <fieldset>
           <legend>品牌</legend>
           <label class="filter-option">
@@ -110,7 +147,8 @@
         }
       </form>
 
-      <p class="result-count" role="status" aria-live="polite">
+      @if (query.valid) {
+        <p class="result-count" role="status" aria-live="polite">
         @if (loading) {
           正在載入商品…
         } @else if (error) {
@@ -120,9 +158,15 @@
         } @else {
           第 {{ rangeStart }}–{{ rangeEnd }} 件，共 {{ count }} 件
         }
-      </p>
+        </p>
+      }
 
-      @if (error) {
+      @if (!query.valid) {
+        <div class="state-panel" role="alert">
+          <p>價格條件無效，請修正或清除價格後再查詢商品。</p>
+          <button type="button" (click)="clearPrices()">清除價格</button>
+        </div>
+      } @else if (error) {
         <div class="state-panel" role="alert">
           <p>商品載入失敗，請確認網路後再試一次。</p>
           <button class="products-retry" type="button" (click)="retryProducts()">
@@ -164,13 +208,16 @@
                 <span class="product-name">{{ product.name }}</span>
                 <span class="product-price">{{ product.price | twdPrice }}</span>
               </a>
-              <app-favorite-toggle [productId]="product.id" [productName]="product.name" />
+              <div class="product-actions">
+                <app-favorite-toggle [productId]="product.id" [productName]="product.name" />
+                <app-comparison-toggle [productId]="product.id" [productName]="product.name" />
+              </div>
             </article>
           }
         </div>
       }
 
-      @if (loading || count > 0) {
+      @if (query.valid && (loading || count > 0)) {
         <nav class="pagination" aria-label="商品分頁">
           <button
             type="button"

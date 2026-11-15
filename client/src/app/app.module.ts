@@ -16,6 +16,8 @@ import { CartComponent } from './cart/cart.component';
 import { FavoritesComponent } from './favorites/favorites.component';
 import { FavoriteToggleComponent } from './favorites/favorite-toggle.component';
 import { RecentlyViewedComponent } from './recently-viewed/recently-viewed.component';
+import { ComparisonComponent } from './comparison/comparison.component';
+import { ComparisonToggleComponent } from './comparison/comparison-toggle.component';
 
 @NgModule({ declarations: [
         AppComponent,
@@ -28,7 +30,9 @@ import { RecentlyViewedComponent } from './recently-viewed/recently-viewed.compo
         CartComponent,
         FavoritesComponent,
         FavoriteToggleComponent,
-        RecentlyViewedComponent
+        RecentlyViewedComponent,
+        ComparisonComponent,
+        ComparisonToggleComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         AppRoutingModule,

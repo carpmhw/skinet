@@ -1,0 +1,12 @@
+<button type="button" [attr.aria-label]="'比較' + productName"
+  [attr.aria-pressed]="comparison.has(productId)" (click)="comparison.toggle(productId)">
+  <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    @if (comparison.has(productId)) {
+      <path d="m5 12 4 4L19 6" />
+    } @else {
+      <path d="M5 5h5v14H5zM14 5h5v14h-5z" />
+    }
+  </svg>
+  比較
+</button>

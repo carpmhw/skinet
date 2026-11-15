@@ -1,0 +1,103 @@
+<section class="comparison-page" aria-labelledby="comparison-title">
+  <header class="comparison-heading">
+    <h1 id="comparison-title">商品比較</h1>
+    <p>最多比較3件商品；比較清單僅限本次操作，重新整理後會清空。</p>
+    @if (columns().length > 0) {
+      <button class="clear-comparison" type="button" (click)="clearComparison()">清空比較清單</button>
+    }
+  </header>
+
+  @if (columns().length === 0) {
+    <div class="empty-comparison">
+      <h2 id="empty-comparison-title" tabindex="-1">尚未選擇比較商品</h2>
+      <p>在商品列表或詳情按下「比較」，就能在這裡並排查看。</p>
+      <a class="continue-shopping" routerLink="/shop">瀏覽商品</a>
+    </div>
+  } @else {
+    @if (columns().length === 1) {
+      <p>再選擇一件商品，方便並排比較</p>
+    }
+    <p class="scroll-hint" id="comparison-scroll-hint">可左右捲動比較商品</p>
+    <div class="comparison-scroll" tabindex="0" role="region"
+      aria-labelledby="comparison-caption" aria-describedby="comparison-scroll-hint">
+      <table [style.min-inline-size.rem]="7 + columns().length * 15">
+        <caption id="comparison-caption">已選商品比較</caption>
+        <colgroup>
+          <col class="field-column">
+          @for (column of columns(); track column.productId) { <col> }
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">比較欄位</th>
+            @for (column of columns(); track column.productId) {
+              <th scope="col" [attr.data-product-id]="column.productId">
+                <h2 class="comparison-product-title" tabindex="-1">
+                  @if (column.product; as product) {
+                    <a [routerLink]="['/shop', column.productId]">{{ product.name }}</a>
+                  } @else if (column.status === 'loading') {
+                    正在載入商品 #{{ column.productId }}…
+                  } @else if (column.status === 'unavailable') {
+                    商品 #{{ column.productId }} 已無法取得
+                  } @else {
+                    商品 #{{ column.productId }} 載入失敗
+                  }
+                </h2>
+                <div class="column-actions">
+                  @if (column.status === 'error') {
+                    <button class="retry-product" type="button"
+                      [attr.aria-label]="'重試商品 #' + column.productId"
+                      (click)="retryProduct(column.productId)">重試商品</button>
+                  }
+                  <button class="remove-comparison" type="button"
+                    [attr.aria-label]="'移除比較 ' + (column.product?.name ?? '商品 #' + column.productId)"
+                    (click)="removeItem(column.productId)">移除比較</button>
+                </div>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-field="image">
+            <th scope="row">圖片</th>
+            @for (column of columns(); track column.productId) {
+              <td [attr.data-product-id]="column.productId">
+                @if (column.product; as product) {
+                  <div class="comparison-picture">
+                    <app-product-image [src]="product.pictureUrl" [alt]="product.name" />
+                  </div>
+                } @else { — }
+              </td>
+            }
+          </tr>
+          <tr data-field="price">
+            <th scope="row">價格</th>
+            @for (column of columns(); track column.productId) {
+              <td class="comparison-price" [attr.data-product-id]="column.productId">
+                @if (column.product; as product) { {{ product.price | twdPrice }} } @else { — }
+              </td>
+            }
+          </tr>
+          <tr data-field="brand">
+            <th scope="row">品牌</th>
+            @for (column of columns(); track column.productId) {
+              <td [attr.data-product-id]="column.productId">{{ column.product?.productBrand ?? '—' }}</td>
+            }
+          </tr>
+          <tr data-field="type">
+            <th scope="row">類型</th>
+            @for (column of columns(); track column.productId) {
+              <td [attr.data-product-id]="column.productId">{{ column.product?.productType ?? '—' }}</td>
+            }
+          </tr>
+          <tr data-field="description">
+            <th scope="row">商品介紹</th>
+            @for (column of columns(); track column.productId) {
+              <td [attr.data-product-id]="column.productId">{{ column.product?.description ?? '—' }}</td>
+            }
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <a class="continue-shopping" routerLink="/shop">繼續瀏覽商品</a>
+  }
+</section>

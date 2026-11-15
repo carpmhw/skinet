@@ -1,14 +1,18 @@
 import { ParamMap, Params } from '@angular/router';
+import { formatPriceCents, InvalidPriceRange, parsePriceRange, ValidPriceRange } from './price-range';
 
 export type ShopSort = 'name' | 'priceAsc' | 'priceDesc';
 
-export interface ShopQuery {
+interface ShopQueryBase {
   search: string;
   brandId: number | null;
   typeId: number | null;
   sort: ShopSort;
   pageIndex: number;
 }
+
+export type ShopQuery = ShopQueryBase & (ValidPriceRange | InvalidPriceRange);
+export type ValidShopQuery = ShopQueryBase & ValidPriceRange;
 
 export interface ProductLookup {
   id: number;
@@ -54,6 +58,7 @@ export function parseShopQuery(params: ParamMap, ids: LookupIds = {}): ShopQuery
     typeId: parseLookupId(params.get('typeId'), ids.typeIds),
     sort: sortValue !== null && SORTS.includes(sortValue) ? sortValue : 'name',
     pageIndex: parsePositiveInt(params.get('pageIndex')) ?? 1,
+    ...parsePriceRange(params.get('minPrice'), params.get('maxPrice')),
   };
 }
 
@@ -74,6 +79,13 @@ export function toShopParams(query: ShopQuery): Params {
   }
   if (query.pageIndex !== 1) {
     params['pageIndex'] = query.pageIndex;
+  }
+  if (query.valid === true) {
+    if (query.minPriceCents !== null) params['minPrice'] = formatPriceCents(query.minPriceCents);
+    if (query.maxPriceCents !== null) params['maxPrice'] = formatPriceCents(query.maxPriceCents);
+  } else {
+    if (query.minPriceInput !== '') params['minPrice'] = query.minPriceInput;
+    if (query.maxPriceInput !== '') params['maxPrice'] = query.maxPriceInput;
   }
   return params;
 }

@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { IPagination } from '../models/pagination';
 import { IProduct } from '../models/product';
-import { ProductLookup, ShopQuery } from './shop-query';
+import { ProductLookup, ValidShopQuery } from './shop-query';
+import { formatPriceCents } from './price-range';
 
 @Injectable({ providedIn: 'root' })
 export class ShopService {
@@ -12,7 +13,7 @@ export class ShopService {
   private readonly productsUrl = `${environment.apiUrl}products`;
 
   // 依查詢條件取得固定每頁六件的商品頁。
-  getProducts(query: ShopQuery): Observable<IPagination> {
+  getProducts(query: ValidShopQuery): Observable<IPagination> {
     let params = new HttpParams()
       .set('pageIndex', query.pageIndex)
       .set('pageSize', 6);
@@ -28,6 +29,8 @@ export class ShopService {
     if (query.sort !== 'name') {
       params = params.set('sort', query.sort);
     }
+    if (query.minPriceCents !== null) params = params.set('minPrice', formatPriceCents(query.minPriceCents));
+    if (query.maxPriceCents !== null) params = params.set('maxPrice', formatPriceCents(query.maxPriceCents));
     return this.http.get<IPagination>(this.productsUrl, { params });
   }
 
