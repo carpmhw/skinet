@@ -203,7 +203,7 @@ Swagger 僅在 Development 環境提供，網址為 `https://localhost:5001/swag
 
 **啟用順序：先更新 API，再更新前端／Pages。** 舊 API 可能回 `200` 卻忽略價格，不能只以 HTTP 成功驗收；需依實際商品驗證單邊、相等、小數端點、範圍外排除及分頁前 `count`。既有代理直接轉送 query，無需擴增允許路徑或改 Cloudflare 保護規則。本次程式變更未部署。
 
-已知介面限制：手動收合篩選區後，導航到非法價格網址或操作受阻控制時，篩選區未必自動重新展開；可手動展開修正，或使用結果區的「清除價格」。真實桌面／375px、原生鍵盤及讀屏驗收尚未執行。
+篩選區會同步使用者手動收合的狀態；之後遇到非法價格網址或被擋下的操作會重新展開。價格流程已在本機 Chromium（桌面 1280px 與 375px）以瀏覽器測試驗證，讀屏朗讀仍未驗收。
 
 ## 測試
 
@@ -216,6 +216,10 @@ cd client
 npm run lint
 npm test -- --watch=false
 npm run build -- --configuration production
+
+# 真實瀏覽器回歸測試（需 .NET SDK；首次先安裝 Chromium）
+npx playwright install chromium
+npm run e2e:browser
 cd ..
 
 # 容器冒煙測試（先建置 Image）
@@ -224,6 +228,8 @@ docker build -t skinet:local -f Dockerfile .
 ```
 
 冒煙測試會檢查 `/`、`/shop`、`/shop/1`、`/cart`、`/api/products`、`/images/products/*`、不存在的 `/api` 路由，以及容器重建後 SQLite 是否透過 Volume 標記保持持久化。HTML fallback 檢查不等同於瀏覽器的購物車操作驗收。
+
+`npm run e2e:browser` 會先產生正式建置，再由 Playwright（`@playwright/test` 1.65.1、Chromium revision 1255）啟動實際 API。前端與商品圖片放在暫存 webroot，資料庫使用暫存 SQLite，結束或中斷時清除，不寫入 `API/wwwroot` 或 repo 內的資料庫。目前涵蓋價格篩選：Enter 送出、錯誤焦點、非法網址阻擋、分頁／詳情／上一頁保留、Tab 順序與 375px 無水平溢出；非法價格網址會確認不送出商品請求、不搶焦點。只驗證 DOM 的 aria 與焦點，不代表讀屏實際朗讀；未納入 CI。
 
 ### 購物車的保存與價格
 

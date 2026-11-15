@@ -10,7 +10,8 @@
     "check:proxy": "tsc -p tsconfig.proxy.json --noEmit",
     "lint:proxy": "eslint server functions vitest.proxy.config.ts",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "e2e:browser": "ng build --configuration production && playwright test"
   },
   "private": true,
   "overrides": {
@@ -69,6 +70,7 @@
     "@angular/cli": "21.2.29",
     "@angular/compiler-cli": "21.2.25",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.65.1",
     "@types/node": "^24.13.4",
     "angular-eslint": "21.4.0",
     "eslint": "^10.3.0",

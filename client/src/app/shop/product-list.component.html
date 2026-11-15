@@ -5,7 +5,7 @@
   </header>
 
   <div class="shop-layout">
-    <details class="filters" [open]="filtersOpen">
+    <details class="filters" [open]="filtersOpen" (toggle)="onFiltersToggle($any($event.target).open)">
       <summary>篩選商品</summary>
       <div class="filter-content">
         <div role="search" aria-label="價格篩選">

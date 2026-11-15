@@ -51,7 +51,7 @@ SkiNet 目前提供商品瀏覽、搜尋、篩選、排序、分頁、詳情、�
 
 比較位於 `client/src/app/comparison/`；本機Angular149項、代理82項、兩套lint／proxy typecheck／正式建置及獨立程式碼審查通過（lint無錯誤，13項standalone警告：11既有、2新增NgModule元件）。紀錄見 `docs/superpowers/plans/2026-11-15-product-comparison.md`。本次未部署；375px／桌面實際排版、五項導覽換行、整頁溢出與sticky、表格原生鍵盤捲動與讀屏驗收尚未執行。
 
-價格篩選位於既有shop與商品API；本機API67項、Angular197項、代理84項、兩套lint／proxy typecheck／正式建置通過（lint無錯誤，13項既有standalone警告）。一次獨立審查發現的Important已以4個紅→綠案例修復：延遲品牌／類型校正失效ID不再清掉價格草稿與錯誤。保留1項延期Minor：手動收合篩選區後，非法URL／受阻操作未必重新展開，可手動展開或使用結果區清除價格。紀錄見 `docs/superpowers/plans/2026-11-15-price-range-filter.md`；本次未提交或部署，桌面／375px、原生鍵盤與讀屏皆NOT RUN。
+價格篩選位於既有shop與商品API；本機API67項、Angular197項、代理84項、兩套lint／proxy typecheck／正式建置通過（lint無錯誤，13項既有standalone警告）。一次獨立審查發現的Important已以4個紅→綠案例修復：延遲品牌／類型校正失效ID不再清掉價格草稿與錯誤。原延期Minor（手動收合後未必重新展開）已於2026-11-16以原生toggle同步修復。紀錄見 `docs/superpowers/plans/2026-11-15-price-range-filter.md`；未部署。2026-11-16起以 `npm run e2e:browser`（Playwright 1.65.1／Chromium 1255，實際API＋暫存SQLite）在桌面1280px與375px驗證價格流程、Enter／Tab、歷史導航及無水平溢出；讀屏朗讀、正式站與其他功能的瀏覽器流程仍NOT RUN。紀錄見 `docs/superpowers/plans/2026-11-16-browser-e2e.md`。
 
 ## Approved Cart Rules
 

@@ -119,6 +119,35 @@ describe('ProductListComponent', () => {
     harness.fixture.detectChanges();
   }
 
+  // 手動收合後原生狀態須同步，否則再次強制展開不會改變綁定。
+  it('reopensFiltersAfterManualCollapse', async () => {
+    await openList();
+    flushLookups();
+    pendingProducts().flush(page(1, 12));
+    harness.fixture.detectChanges();
+    const details = harness.routeNativeElement!.querySelector('details')!;
+    details.open = false;
+    await new Promise(resolve => details.addEventListener('toggle', resolve, { once: true }));
+    harness.fixture.detectChanges();
+    await router.navigateByUrl('/shop?minPrice=bad');
+    await harness.fixture.whenStable();
+    harness.fixture.detectChanges();
+    expect(details.open).toBe(true);
+    http.expectNone(request => request.url === `${environment.apiUrl}products`);
+
+    await router.navigateByUrl('/shop');
+    pendingProducts().flush(page(1, 12));
+    harness.fixture.detectChanges();
+    details.open = false;
+    await new Promise(resolve => details.addEventListener('toggle', resolve, { once: true }));
+    harness.fixture.detectChanges();
+    await enterPrices('20.01', '20');
+    expect(details.open).toBe(true);
+    expect(document.activeElement).toBe(
+      harness.routeNativeElement!.querySelector('[name="minPrice"]'),
+    );
+  });
+
   // 草稿不能混入請求或詳情；送出才保留其他條件並回第一頁。
   it('keepsPriceDraftSeparateUntilSubmit', async () => {
     await openList('/shop?search=Angular&brandId=1&typeId=1&sort=priceAsc&pageIndex=2&minPrice=0');

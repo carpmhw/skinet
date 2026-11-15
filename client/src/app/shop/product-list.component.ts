@@ -122,6 +122,11 @@ export class ProductListComponent implements OnInit, OnDestroy {
       this.query.maxPriceCents !== null || this.priceNotApplied;
   }
 
+  // 同步使用者手動展開／收合的原生狀態，讓之後的強制展開能真正改變綁定。
+  onFiltersToggle(open: boolean): void {
+    this.filtersOpen = open;
+  }
+
   // 輸入時只清除已修正錯誤，不產生新提示或商品請求。
   editPrice(kind: 'minPrice' | 'maxPrice', value: string): void {
     if (kind === 'minPrice') this.minPriceInput = value;
