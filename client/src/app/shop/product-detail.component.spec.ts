@@ -17,6 +17,8 @@ import { vi } from 'vitest';
 import { FavoriteToggleComponent } from '../favorites/favorite-toggle.component';
 import { FavoritesService } from '../favorites/favorites.service';
 import { RecentViewsService } from '../recently-viewed/recent-views.service';
+import { ComparisonToggleComponent } from '../comparison/comparison-toggle.component';
+import { ComparisonService } from '../comparison/comparison.service';
 
 describe('ProductDetailComponent', () => {
   let http: HttpTestingController;
@@ -52,6 +54,7 @@ describe('ProductDetailComponent', () => {
         ProductImageComponent,
         TwdPricePipe,
         FavoriteToggleComponent,
+        ComparisonToggleComponent,
       ],
       imports: [FormsModule, RouterModule],
       providers: [
@@ -87,6 +90,38 @@ describe('ProductDetailComponent', () => {
         candidate.method === 'GET' && candidate.url === `${environment.apiUrl}products/${id}`,
     );
   }
+
+  // 返回列表須保留雙邊價格與頁碼，不可把詳情查詢當成無範圍。
+  it('restoresPricesOnDetailReturn', async () => {
+    await openDetail('/shop/1?minPrice=0&maxPrice=200&pageIndex=2');
+    pendingProduct(1).flush(boots);
+    harness.fixture.detectChanges();
+    const back = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('.back-link')!;
+    expect(Object.fromEntries(new URLSearchParams(back.getAttribute('href')!.split('?')[1])))
+      .toEqual({ minPrice: '0', maxPrice: '200', pageIndex: '2' });
+    await harness.navigateByUrl(back.getAttribute('href')!);
+    http.expectOne(request => request.url === `${environment.apiUrl}products/brands`).flush([]);
+    http.expectOne(request => request.url === `${environment.apiUrl}products/types`).flush([]);
+    const request = http.expectOne(request => request.url === `${environment.apiUrl}products`);
+    expect(request.request.params.get('minPrice')).toBe('0');
+    expect(request.request.params.get('maxPrice')).toBe('200');
+    request.flush({ pageIndex: 2, pageSize: 6, count: 12, data: [boots] });
+  });
+
+  // 直接開啟無效價格詳情的返回連結仍需保留原輸入，回列表才引導修正。
+  it('preservesInvalidPricesOnDetailReturnWithoutQueryingTheList', async () => {
+    await openDetail('/shop/1?minPrice=1e2&maxPrice=20');
+    pendingProduct(1).flush(boots);
+    harness.fixture.detectChanges();
+    const back = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('.back-link')!;
+    expect(new URLSearchParams(back.getAttribute('href')!.split('?')[1]).get('minPrice')).toBe('1e2');
+    await harness.navigateByUrl(back.getAttribute('href')!);
+    http.expectOne(request => request.url === `${environment.apiUrl}products/brands`).flush([]);
+    http.expectOne(request => request.url === `${environment.apiUrl}products/types`).flush([]);
+    http.expectNone(request => request.url === `${environment.apiUrl}products`);
+    harness.fixture.detectChanges();
+    expect(harness.routeNativeElement!.textContent).toContain('請修正或清除價格');
+  });
 
   // 缺少成功回應記錄會使既有ID無法前移；載入前記錄則會過早變更。
   it('records returned IDs only after successful detail responses', async () => {
@@ -269,6 +304,9 @@ describe('ProductDetailComponent', () => {
     favorite.click();
     harness.fixture.detectChanges();
     expect(TestBed.inject(FavoritesService).productIds()).toEqual([1]);
+    harness.routeNativeElement!.querySelector<HTMLButtonElement>('app-comparison-toggle button')!.click();
+    harness.fixture.detectChanges();
+    expect(TestBed.inject(ComparisonService).productIds()).toEqual([1]);
     const detailHref = harness
       .routeNativeElement!.querySelector('a.product-link')!
       .getAttribute('href')!;
@@ -278,6 +316,13 @@ describe('ProductDetailComponent', () => {
     pendingProduct(1).flush(boots);
     harness.fixture.detectChanges();
     expect(router.url).toBe('/shop/1?brandId=1');
+    const detailComparison = harness.routeNativeElement!.querySelector<HTMLButtonElement>('app-comparison-toggle button')!;
+    expect(detailComparison.getAttribute('aria-pressed')).toBe('true');
+    const recentRaw = localStorage.getItem('skinet.recently-viewed.v1');
+    detailComparison.click();
+    harness.fixture.detectChanges();
+    expect(TestBed.inject(ComparisonService).productIds()).toEqual([]);
+    expect(localStorage.getItem('skinet.recently-viewed.v1')).toBe(recentRaw);
     const detailFavorite = harness.routeNativeElement!.querySelector<HTMLButtonElement>('app-favorite-toggle button')!;
     expect(detailFavorite.getAttribute('aria-pressed')).toBe('true');
     detailFavorite.click();
@@ -306,6 +351,7 @@ describe('ProductDetailComponent', () => {
       .querySelector<HTMLInputElement>('input[name=brand]:checked')!;
     expect(checked).not.toBeNull();
     expect(harness.routeNativeElement!.querySelector('app-favorite-toggle button')!.getAttribute('aria-pressed')).toBe('false');
+    expect(harness.routeNativeElement!.querySelector('app-comparison-toggle button')!.getAttribute('aria-pressed')).toBe('false');
   });
 
   // 僅已成功取得的商品能加入，且不自動離開詳情。
@@ -353,10 +399,12 @@ describe('ProductDetailComponent', () => {
   // 下架與暫時錯誤畫面皆不能加入未取得的商品。
   it('does not offer add controls for missing or failed products', async () => {
     await openDetail('/shop/1');
+    expect(harness.routeNativeElement!.querySelector('app-comparison-toggle')).toBeNull();
     expect(harness.routeNativeElement!.querySelector('app-favorite-toggle')).toBeNull();
     pendingProduct(1).flush('missing', { status: 404, statusText: 'Not Found' });
     harness.fixture.detectChanges();
     expect(harness.routeNativeElement!.querySelector('.add-to-cart')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('app-comparison-toggle')).toBeNull();
     expect(harness.routeNativeElement!.querySelector('app-favorite-toggle')).toBeNull();
     await router.navigateByUrl('/shop/2');
     pendingProduct(2).flush('failed', { status: 500, statusText: 'Server Error' });
@@ -364,5 +412,6 @@ describe('ProductDetailComponent', () => {
     expect(harness.routeNativeElement!.querySelector('.add-to-cart')).toBeNull();
     expect(harness.routeNativeElement!.querySelector('app-favorite-toggle')).toBeNull();
     expect(TestBed.inject(CartService).totalQuantity()).toBe(0);
+    expect(harness.routeNativeElement!.querySelector('app-comparison-toggle')).toBeNull();
   });
 });

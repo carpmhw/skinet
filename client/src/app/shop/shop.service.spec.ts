@@ -3,13 +3,14 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
 import { ShopService } from './shop.service';
-import { ShopQuery } from './shop-query';
+import { ValidShopQuery } from './shop-query';
 
 describe('ShopService', () => {
   let service: ShopService;
   let http: HttpTestingController;
 
-  const defaultQuery: ShopQuery = {
+  const defaultQuery: ValidShopQuery = {
+    valid: true, minPriceCents: null, maxPriceCents: null,
     search: '',
     brandId: null,
     typeId: null,
@@ -27,10 +28,24 @@ describe('ShopService', () => {
 
   afterEach(() => http.verify());
 
+  // HTTP 金額需精確序列化且保留零，不能漏送單邊條件。
+  it.each([
+    [0, 1999, '0', '19.99'],
+    [1999, null, '19.99', null],
+    [null, 2001, null, '20.01'],
+  ])('sends price bounds %s and %s', (minPriceCents, maxPriceCents, min, max) => {
+    service.getProducts({ ...defaultQuery, minPriceCents, maxPriceCents }).subscribe();
+    const request = http.expectOne(candidate => candidate.url === `${environment.apiUrl}products`);
+    expect(request.request.params.get('minPrice')).toBe(min);
+    expect(request.request.params.get('maxPrice')).toBe(max);
+    expect(request.request.params.get('pageSize')).toBe('6');
+    request.flush({ pageIndex: 1, pageSize: 6, count: 0, data: [] });
+  });
+
   // 驗證列表請求固定每頁六件並帶上目前查詢條件。
   it('requests the catalogue with a page size of six and the query conditions', () => {
     service
-      .getProducts({ search: 'Core', brandId: 2, typeId: 3, sort: 'priceDesc', pageIndex: 4 })
+      .getProducts({ ...defaultQuery, search: 'Core', brandId: 2, typeId: 3, sort: 'priceDesc', pageIndex: 4 })
       .subscribe();
 
     const request = http.expectOne(
@@ -57,6 +72,8 @@ describe('ShopService', () => {
     expect(request.request.params.has('search')).toBe(false);
     expect(request.request.params.has('brandId')).toBe(false);
     expect(request.request.params.has('typeId')).toBe(false);
+    expect(request.request.params.has('minPrice')).toBe(false);
+    expect(request.request.params.has('maxPrice')).toBe(false);
     request.flush({});
   });
 

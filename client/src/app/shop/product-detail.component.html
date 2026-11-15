@@ -29,6 +29,7 @@
         <p class="detail-price">{{ product.price | twdPrice }}</p>
         <div class="favorite-action">
           <app-favorite-toggle [productId]="product.id" [productName]="product.name" />
+          <app-comparison-toggle [productId]="product.id" [productName]="product.name" />
         </div>
         <div class="cart-action">
           <button class="add-to-cart" type="button" (click)="addToCart()">加入購物車</button>

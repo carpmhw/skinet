@@ -64,6 +64,67 @@
   color: #545b63;
 }
 
+.price-form {
+  min-width: 0;
+}
+
+.price-form .field {
+  margin-block-start: 16px;
+}
+
+.price-form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid #767676;
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-form input[aria-invalid="true"] {
+  border-color: #a12622;
+}
+
+.price-error {
+  margin: 8px 0 0;
+  color: #a12622;
+  font-size: 14px;
+}
+
+.price-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block-start: 16px;
+}
+
+.price-actions button {
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid #767676;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #141414;
+}
+
+.price-actions .apply-prices {
+  background: #141414;
+  color: #ffffff;
+}
+
+.price-actions button:hover {
+  background: #e7eaee;
+  color: #141414;
+}
+
+.price-form :is(input, button):focus-visible {
+  outline: 2px solid #141414;
+  outline-offset: 3px;
+}
+
 .lookup-error {
   margin: 8px 0 0;
   font-size: 14px;
@@ -167,7 +228,7 @@
 }
 
 .product-link:focus-visible { outline: 2px solid #141414; outline-offset: 4px; }
-.product-card app-favorite-toggle { margin-top: 12px; }
+.product-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
 .product-card .picture {
   display: flex;

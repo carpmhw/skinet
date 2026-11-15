@@ -7,10 +7,13 @@ import { AppComponent } from './app.component';
 import { AppModule } from './app.module';
 import { CartService } from './cart/cart.service';
 import { environment } from '../environments/environment';
+import { ComparisonService } from './comparison/comparison.service';
+import { RecentViewsService } from './recently-viewed/recent-views.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     localStorage.removeItem('skinet.cart.v1');
+    localStorage.removeItem('skinet.recently-viewed.v1');
     await TestBed.configureTestingModule({
       imports: [AppModule],
       // Match the zone-based change detection configured in main.ts.
@@ -26,6 +29,7 @@ describe('AppComponent', () => {
   afterEach(() => {
     TestBed.inject(HttpTestingController).verify();
     localStorage.removeItem('skinet.cart.v1');
+    localStorage.removeItem('skinet.recently-viewed.v1');
   });
 
   it('renders the SkiNet shell with a router outlet', () => {
@@ -96,5 +100,56 @@ describe('AppComponent', () => {
     fixture.detectChanges();
     expect(element.querySelector('.cart-total')!.textContent).toContain('NT$250');
     expect(element.querySelector('[data-product-id="1"]')!.textContent).toContain('Demo board');
+  });
+
+  // 完整shell、詳情與比較頁須共用選取，只有真詳情成功才記錄最近瀏覽。
+  it('shares comparison across detail, navigation and return visits without tracking display queries', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+    const http = TestBed.inject(HttpTestingController);
+    const recent = TestBed.inject(RecentViewsService);
+    fixture.detectChanges();
+    const product = { id: 1, name: 'Demo board', description: 'Demo', price: 200,
+      pictureUrl: '/images/products/sb-ang1.png', productType: 'Boards', productBrand: 'Angular' };
+    await router.navigateByUrl('/shop/1');
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiUrl}products/1`).flush(product);
+    fixture.detectChanges();
+    const element: HTMLElement = fixture.nativeElement;
+    element.querySelector<HTMLButtonElement>('app-comparison-toggle button')!.click();
+    fixture.detectChanges();
+    expect(element.querySelector('nav a[href="/compare"]')!.textContent).toContain('比較（1）');
+    expect(recent.productIds()).toEqual([1]);
+    await router.navigateByUrl('/compare');
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiUrl}products/1`).flush({ ...product, price: 250 });
+    fixture.detectChanges();
+    expect(element.querySelector('[data-field="price"] td')!.textContent).toContain('NT$250');
+    expect(recent.productIds()).toEqual([1]);
+    await router.navigateByUrl('/shop/2');
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiUrl}products/2`).flush({ ...product, id: 2 });
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('app-comparison-toggle button')!.click();
+    fixture.detectChanges();
+    expect(TestBed.inject(ComparisonService).productIds()).toEqual([1, 2]);
+    expect(recent.productIds()).toEqual([2, 1]);
+    await router.navigateByUrl('/compare');
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiUrl}products/2`).flush({ ...product, id: 2, price: 300 });
+    http.expectOne(`${environment.apiUrl}products/1`).flush(product);
+    fixture.detectChanges();
+    expect(recent.productIds()).toEqual([2, 1]);
+    expect(element.querySelectorAll('thead th[data-product-id]').length).toBe(2);
+    element.querySelector<HTMLButtonElement>('thead th[data-product-id="1"] .remove-comparison')!.click();
+    fixture.detectChanges();
+    expect(element.querySelector('.comparison-feedback')!.textContent).toContain('已移除比較，目前共 1 件');
+    element.querySelector<HTMLButtonElement>('.clear-comparison')!.click();
+    fixture.detectChanges();
+    expect(element.querySelector('nav a[href="/compare"]')!.textContent).toContain('比較（0）');
+    expect(element.querySelectorAll('.comparison-feedback[role="status"]').length).toBe(1);
+    expect(element.querySelector('.comparison-feedback')!.textContent).toContain('已清空比較清單');
+    expect(element.querySelector('app-comparison [role="status"], app-comparison [aria-live]')).toBeNull();
+    expect(recent.productIds()).toEqual([2, 1]);
   });
 });

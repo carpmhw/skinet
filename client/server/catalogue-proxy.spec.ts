@@ -65,6 +65,33 @@ it('preserves query while replacing visitor credentials with runtime secrets', a
   });
 });
 
+// 價格與既有條件必須完整轉送，不能遺漏零或改寫編碼字元。
+it('forwardsPriceRangeWithOtherQueryParameters', async () => {
+  const query = '?minPrice=0&maxPrice=19.99&search=snow%20board&brandId=2&typeId=3&sort=priceAsc&pageIndex=2';
+  const fetcher = vi.fn<typeof fetch>(async input => {
+    expect((input as Request).url).toBe(`https://api.example.com/api/products${query}`);
+    return Response.json({ count: 0, data: [] });
+  });
+  const response = await proxyCatalogue(request(`/api/products${query}`), env, fetcher);
+  expect(response.status).toBe(200);
+  expect(fetcher).toHaveBeenCalledOnce();
+});
+
+// 價格驗證失敗保留 JSON 400，同時阻止上游機密標頭流向訪客。
+it('preservesPriceValidationJson400', async () => {
+  const body = { statusCode: 400, errors: ['最低價格不可高於最高價格'] };
+  const fetcher = vi.fn<typeof fetch>(async () => Response.json(body, {
+    status: 400,
+    headers: { 'CF-Access-Client-Secret': 'private-secret', 'Set-Cookie': 'private-secret' }
+  }));
+  const response = await proxyCatalogue(request('/api/products?minPrice=20&maxPrice=10'), env, fetcher);
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual(body);
+  expect(Object.fromEntries(response.headers)).toEqual({
+    'cache-control': 'no-store', 'content-type': 'application/json'
+  });
+});
+
 // 模擬上游拒絕空UA，確認API、圖片及HEAD都有固定的代理識別。
 it.each([
   ['/api/products', 'GET', undefined, 'application/json'],

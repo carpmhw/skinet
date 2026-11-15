@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ParamMap, Params, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -6,10 +6,11 @@ import { IPagination } from '../models/pagination';
 import { IProduct } from '../models/product';
 import { parseShopQuery, ProductLookup, ShopQuery, ShopSort, toShopParams } from './shop-query';
 import { ShopService } from './shop.service';
+import { formatPriceCents, parsePriceRange, PriceErrors, ValidPriceRange } from './price-range';
 
 type LookupState = 'loading' | 'ready' | 'error';
 
-const QUERY_KEYS = ['search', 'brandId', 'typeId', 'sort', 'pageIndex'] as const;
+const QUERY_KEYS = ['search', 'brandId', 'typeId', 'sort', 'pageIndex', 'minPrice', 'maxPrice'] as const;
 
 @Component({
   selector: 'app-product-list',
@@ -25,9 +26,19 @@ export class ProductListComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly shop = inject(ShopService);
   private readonly title = inject(Title);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  @ViewChild('minPriceField') private minPriceField?: ElementRef<HTMLInputElement>;
+  @ViewChild('maxPriceField') private maxPriceField?: ElementRef<HTMLInputElement>;
 
-  query: ShopQuery = { search: '', brandId: null, typeId: null, sort: 'name', pageIndex: 1 };
+  query: ShopQuery = {
+    search: '', brandId: null, typeId: null, sort: 'name', pageIndex: 1,
+    valid: true, minPriceCents: null, maxPriceCents: null,
+  };
   searchTerm = '';
+  minPriceInput = '';
+  maxPriceInput = '';
+  priceErrors: PriceErrors = {};
+  priceNotApplied = false;
   filtersOpen = true;
   products: IProduct[] = [];
   count = 0;
@@ -86,18 +97,80 @@ export class ProductListComponent implements OnInit, OnDestroy {
     return Array.from({ length: 5 }, (_, index) => start + index);
   }
 
+  // 價格零或非法價格同樣屬於可清除的條件，不能以 truthy 判斷。
   get hasConditions(): boolean {
     return (
       this.query.search !== '' ||
       this.query.brandId !== null ||
       this.query.typeId !== null ||
-      this.query.sort !== 'name'
+      this.query.sort !== 'name' ||
+      this.query.valid === false ||
+      this.query.minPriceCents !== null ||
+      this.query.maxPriceCents !== null
     );
   }
 
   // 詳情連結沿用目前正規化條件，返回時可重建同一個列表。
   get detailQueryParams(): Params {
     return toShopParams(this.query);
+  }
+
+  // 草稿、已套用價格或錯誤任一存在時，均提供獨立清除入口。
+  get hasPrices(): boolean {
+    return this.minPriceInput !== '' || this.maxPriceInput !== '' ||
+      this.query.valid === false || this.query.minPriceCents !== null ||
+      this.query.maxPriceCents !== null || this.priceNotApplied;
+  }
+
+  // 輸入時只清除已修正錯誤，不產生新提示或商品請求。
+  editPrice(kind: 'minPrice' | 'maxPrice', value: string): void {
+    if (kind === 'minPrice') this.minPriceInput = value;
+    else this.maxPriceInput = value;
+    if (!this.priceErrors.minPrice && !this.priceErrors.maxPrice) return;
+    const range = parsePriceRange(this.minPriceInput, this.maxPriceInput);
+    if (range.valid === true) this.priceErrors = {};
+    else {
+      if (!range.errors.minPrice) delete this.priceErrors.minPrice;
+      if (!range.errors.maxPrice) delete this.priceErrors.maxPrice;
+    }
+  }
+
+  // 提交才驗證草稿，錯誤保留已套用結果，合法則寫網址並回首頁。
+  submitPriceRange(): void {
+    const range = parsePriceRange(this.minPriceInput, this.maxPriceInput);
+    if (range.valid === false) {
+      this.showPriceErrors(range.errors);
+      return;
+    }
+    this.resetPriceDraft(range);
+    const query = { ...this.query, ...range, pageIndex: 1 };
+    if (!this.sameQuery(query, this.query)) this.navigate(query);
+  }
+
+  // 只清價格與錯誤，其他已套用條件不變，亦支援非法價格網址。
+  clearPrices(): void {
+    const range: ValidPriceRange = { valid: true, minPriceCents: null, maxPriceCents: null };
+    this.resetPriceDraft(range);
+    const query = { ...this.query, ...range, pageIndex: 1 };
+    if (!this.sameQuery(query, this.query)) this.navigate(query);
+  }
+
+  // 先渲染可見錯誤再聚焦，使輔助科技能讀到對應欄位說明。
+  private showPriceErrors(errors: PriceErrors): void {
+    this.priceErrors = { ...errors };
+    this.priceNotApplied = true;
+    this.filtersOpen = true;
+    this.changeDetector.detectChanges();
+    const field = errors.minPrice ? this.minPriceField : this.maxPriceField;
+    field?.nativeElement.focus();
+  }
+
+  // 將合法已套用金額同步成草稿；同網址清除也不依賴路由事件。
+  private resetPriceDraft(range: ValidPriceRange): void {
+    this.minPriceInput = range.minPriceCents === null ? '' : formatPriceCents(range.minPriceCents);
+    this.maxPriceInput = range.maxPriceCents === null ? '' : formatPriceCents(range.maxPriceCents);
+    this.priceErrors = {};
+    this.priceNotApplied = false;
   }
 
   // 以目前輸入值提交搜尋，並回到第一頁。
@@ -133,7 +206,11 @@ export class ProductListComponent implements OnInit, OnDestroy {
   // 移除所有查詢條件並回到預設列表。
   clearFilters(): void {
     this.searchTerm = '';
-    this.navigate({ search: '', brandId: null, typeId: null, sort: 'name', pageIndex: 1 });
+    this.resetPriceDraft({ valid: true, minPriceCents: null, maxPriceCents: null });
+    this.navigate({
+      search: '', brandId: null, typeId: null, sort: 'name', pageIndex: 1,
+      valid: true, minPriceCents: null, maxPriceCents: null,
+    });
   }
 
   // 使用目前查詢重試商品列表。
@@ -154,21 +231,36 @@ export class ProductListComponent implements OnInit, OnDestroy {
 
   // 將新條件寫回網址，統一由 queryParamMap 推動畫面更新。
   private navigate(query: ShopQuery, replaceUrl = false): void {
+    if (query.valid === false) {
+      this.showPriceErrors(query.errors);
+      return;
+    }
     void this.router.navigate(['/shop'], { queryParams: toShopParams(query), replaceUrl });
   }
 
-  // 解析目前網址並更正不合法的查詢字串，再決定是否重新查詢。
-  private applyParams(params: ParamMap): void {
+  // 真正導航才還原價格草稿；選項校正只更新已套用查詢及網址。
+  private applyParams(params: ParamMap, preservePriceDraft = false): void {
     this.lastParams = params;
     this.title.setTitle('商品目錄 | SkiNet');
     const query = parseShopQuery(params, { brandIds: this.brandIds, typeIds: this.typeIds });
     this.searchTerm = query.search;
-    this.syncUrl(query, params);
+    if (query.valid === true) this.syncUrl(query, params);
 
     if (this.hasLoaded && this.sameQuery(query, this.query)) {
       return;
     }
     this.query = query;
+    if (!preservePriceDraft) {
+      if (query.valid === true) {
+        this.resetPriceDraft(query);
+      } else {
+        this.minPriceInput = query.minPriceInput;
+        this.maxPriceInput = query.maxPriceInput;
+        this.priceErrors = { ...query.errors };
+        this.priceNotApplied = false;
+        this.filtersOpen = true;
+      }
+    }
     this.loadProducts();
   }
 
@@ -186,6 +278,14 @@ export class ProductListComponent implements OnInit, OnDestroy {
   // 以目前查詢取得列表，並取消尚未完成的舊請求。
   private loadProducts(): void {
     this.requestSub?.unsubscribe();
+    if (this.query.valid === false) {
+      this.products = [];
+      this.count = 0;
+      this.loading = false;
+      this.error = false;
+      this.hasLoaded = true;
+      return;
+    }
     this.loading = true;
     this.error = false;
     this.hasLoaded = true;
@@ -225,7 +325,11 @@ export class ProductListComponent implements OnInit, OnDestroy {
       left.brandId === right.brandId &&
       left.typeId === right.typeId &&
       left.sort === right.sort &&
-      left.pageIndex === right.pageIndex
+      left.pageIndex === right.pageIndex &&
+      (left.valid === true && right.valid === true
+        ? left.minPriceCents === right.minPriceCents && left.maxPriceCents === right.maxPriceCents
+        : left.valid === false && right.valid === false &&
+          left.minPriceInput === right.minPriceInput && left.maxPriceInput === right.maxPriceInput)
     );
   }
 
@@ -263,10 +367,10 @@ export class ProductListComponent implements OnInit, OnDestroy {
     });
   }
 
-  // 選項載入後重新驗證網址中的 ID；仍需查詢時保留目前狀態。
+  // 延遲選項移除失效 ID 時保留價格草稿；後續 replaceUrl 同查詢不再重設。
   private reapplyLastParams(): void {
     if (this.lastParams) {
-      this.applyParams(this.lastParams);
+      this.applyParams(this.lastParams, true);
     }
   }
 

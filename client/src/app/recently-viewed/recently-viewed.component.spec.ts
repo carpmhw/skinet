@@ -7,6 +7,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { environment } from '../../environments/environment';
 import { AppRoutingModule } from '../app-routing.module';
 import { FavoriteToggleComponent } from '../favorites/favorite-toggle.component';
+import { ComparisonToggleComponent } from '../comparison/comparison-toggle.component';
 import { IProduct } from '../models/product';
 import { NotFoundComponent } from '../not-found.component';
 import { ProductDetailComponent } from '../shop/product-detail.component';
@@ -31,7 +32,7 @@ describe('RecentlyViewedComponent', () => {
     TestBed.configureTestingModule({
       declarations: [
         RecentlyViewedComponent, NotFoundComponent, ProductDetailComponent,
-        FavoriteToggleComponent, ProductImageComponent, TwdPricePipe
+        FavoriteToggleComponent, ComparisonToggleComponent, ProductImageComponent, TwdPricePipe
       ],
       imports: [AppRoutingModule, RouterModule],
       providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting()]

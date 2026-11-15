@@ -4,6 +4,7 @@ import { provideRouter, RouterModule } from '@angular/router';
 import { CartService } from '../cart/cart.service';
 import { FavoritesService } from '../favorites/favorites.service';
 import { NavBarComponent } from './nav-bar.component';
+import { ComparisonService } from '../comparison/comparison.service';
 
 describe('NavBarComponent favorites', () => {
   let originalCart: string | null;
@@ -43,10 +44,10 @@ describe('NavBarComponent favorites', () => {
     favorites.remove(17);
     fixture.detectChanges();
     expect(link.textContent).toContain('收藏（1）');
-    expect(fixture.nativeElement.querySelectorAll('[role="status"]').length).toBe(1);
-    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('已取消收藏');
+    expect(fixture.nativeElement.querySelectorAll('.favorites-feedback[role="status"]').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.favorites-feedback').textContent).toContain('已取消收藏');
     expect(fixture.nativeElement.querySelector('nav a[href="/recently-viewed"]').textContent.trim()).toBe('最近瀏覽');
-    expect(fixture.nativeElement.querySelectorAll('nav a').length).toBe(4);
+    expect(fixture.nativeElement.querySelectorAll('nav a').length).toBe(5);
   });
 
   it('uses one visible polite region for action feedback and storage warnings', () => {
@@ -56,9 +57,38 @@ describe('NavBarComponent favorites', () => {
     });
     TestBed.inject(FavoritesService).toggle(17);
     fixture.detectChanges();
-    const regions = fixture.nativeElement.querySelectorAll('[role="status"]');
+    const regions = fixture.nativeElement.querySelectorAll('.favorites-feedback[role="status"]');
     expect(regions.length).toBe(1);
     expect(regions[0].textContent).toContain('已加入收藏，目前共 1 項');
     expect(regions[0].textContent).toContain('收藏暫時無法儲存，重新整理後可能遺失');
+  });
+
+  // 比較回饋集中且不覆寫收藏或購物車內容。
+  it('shows the shared comparison count and one dedicated comparison feedback region', () => {
+    const fixture = TestBed.createComponent(NavBarComponent);
+    const comparison = TestBed.inject(ComparisonService);
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector('nav a[href="/compare"]') as HTMLAnchorElement;
+    expect(link.textContent).toContain('比較（0）');
+    for (const id of [17, 2, 3]) comparison.toggle(id);
+    fixture.detectChanges();
+    expect(link.textContent).toContain('比較（3）');
+    comparison.toggle(4);
+    fixture.detectChanges();
+    expect(link.textContent).toContain('比較（3）');
+    const regions = fixture.nativeElement.querySelectorAll('.comparison-feedback[role="status"]');
+    expect(regions.length).toBe(1);
+    expect(regions[0].textContent).toContain('最多比較3件商品，請先移除一件');
+    comparison.remove(2);
+    fixture.detectChanges();
+    expect(link.textContent).toContain('比較（2）');
+    expect(regions[0].textContent).toContain('已移除比較，目前共 2 件');
+    comparison.clear();
+    fixture.detectChanges();
+    expect(link.textContent).toContain('比較（0）');
+    expect(regions[0].textContent).toContain('已清空比較清單');
+    expect(fixture.nativeElement.querySelectorAll('.favorites-feedback[role="status"]').length).toBe(1);
+    expect(TestBed.inject(FavoritesService).count()).toBe(0);
+    expect(TestBed.inject(CartService).totalQuantity()).toBe(0);
   });
 });
