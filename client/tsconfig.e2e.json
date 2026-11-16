@@ -1,0 +1,13 @@
+/* 瀏覽器測試與 Playwright 設定的型別檢查；Playwright 執行時只轉譯，不檢查型別。 */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node"]
+  },
+  "include": ["e2e/**/*.ts", "playwright.config.ts"]
+}

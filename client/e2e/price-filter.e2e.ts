@@ -91,13 +91,14 @@ test('keeps the price range across paging, detail and history', async ({ page })
 test('reaches price controls in Tab order with visible focus', async ({ page }) => {
   await page.goto('/shop');
   await openFilters(page);
-  await page.locator('#min-price').focus();
+  // 從篩選區標題起按 Tab，確認鍵盤能真正走到最低價格欄位，而非以程式直接聚焦。
+  await page.locator('details.filters summary').focus();
   /** 讀取目前焦點元素的 id 或 class 與外框樣式。 */
   const focused = () => page.evaluate(() => {
     const element = document.activeElement as HTMLElement;
     return { id: element.id || element.className, outline: getComputedStyle(element).outlineStyle };
   });
-  for (const expected of ['max-price', 'apply-prices']) {
+  for (const expected of ['min-price', 'max-price', 'apply-prices']) {
     await page.keyboard.press('Tab');
     const state = await focused();
     expect(state.id).toContain(expected);

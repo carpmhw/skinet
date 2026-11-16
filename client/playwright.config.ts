@@ -16,7 +16,8 @@ export default defineConfig({
     { name: 'mobile', use: { viewport: { width: 375, height: 812 }, isMobile: false } },
   ],
   webServer: {
-    command: 'node e2e/serve.mjs',
+    // 每次都先產生正式建置，直接執行 npx playwright test 也不會測到舊的 dist。
+    command: 'npx ng build --configuration production && node e2e/serve.mjs',
     url: `${baseURL}/api/products/brands`,
     reuseExistingServer: false,
     timeout: 180_000,

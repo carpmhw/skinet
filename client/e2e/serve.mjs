@@ -11,14 +11,31 @@ const dist = join(client, 'dist', 'client');
 const port = process.env.E2E_PORT ?? '5199';
 
 if (!existsSync(join(dist, 'index.html'))) {
-  console.error('找不到 dist/client/index.html，請先執行 ng build --configuration production。');
+  console.error('找不到 dist/client/index.html；請透過 npx playwright test 或 npm run e2e:browser 執行，會先自動建置。');
   process.exit(1);
 }
 
 const root = mkdtempSync(join(tmpdir(), 'skinet-e2e-'));
+let cleaned = false;
+
+// 只清除一次暫存目錄，避免多個結束訊號重複刪除。
+function cleanup() {
+  if (cleaned) return;
+  cleaned = true;
+  rmSync(root, { recursive: true, force: true });
+}
+
+// 暫存目錄一建立就註冊清除，之後任何同步錯誤或正常結束都會清掉。
+process.on('exit', cleanup);
+
 const webroot = join(root, 'wwwroot');
-cpSync(dist, webroot, { recursive: true });
-cpSync(join(api, 'wwwroot', 'images'), join(webroot, 'images'), { recursive: true });
+try {
+  cpSync(dist, webroot, { recursive: true });
+  cpSync(join(api, 'wwwroot', 'images'), join(webroot, 'images'), { recursive: true });
+} catch (error) {
+  console.error('準備暫存 webroot 失敗：', error);
+  process.exit(1);
+}
 
 const server = spawn('dotnet', ['run', '--no-launch-profile', '--', '--webroot', webroot], {
   cwd: api,
@@ -31,25 +48,13 @@ const server = spawn('dotnet', ['run', '--no-launch-profile', '--', '--webroot',
   },
 });
 
-let cleaned = false;
-
-// 只清除一次暫存目錄，避免多個結束訊號重複刪除。
-function cleanup() {
-  if (cleaned) return;
-  cleaned = true;
-  rmSync(root, { recursive: true, force: true });
-}
-
-// 收到中斷或終止訊號時先停止 API，待其結束後再清除並退出。
-function stop(signal) {
-  if (server.exitCode === null) server.kill(signal);
+// 收到中斷、終止或終端機關閉訊號時先停止 API，待其結束後再清除並退出。
+function stop() {
+  if (server.exitCode === null) server.kill('SIGTERM');
   else process.exit(0);
 }
 
-server.on('exit', code => {
-  cleanup();
-  process.exit(code ?? 0);
-});
-process.on('SIGINT', () => stop('SIGINT'));
-process.on('SIGTERM', () => stop('SIGTERM'));
-process.on('exit', cleanup);
+server.on('exit', code => process.exit(code ?? 0));
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(signal, stop);
+}
