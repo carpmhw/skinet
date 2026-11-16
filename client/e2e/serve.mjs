@@ -1,6 +1,6 @@
 // 瀏覽器測試專用：以暫存 webroot 與暫存 SQLite 啟動實際 API，結束時清除，不寫入 repo。
 import { spawn } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, fstatSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,7 +39,8 @@ try {
 
 const server = spawn('dotnet', ['run', '--no-launch-profile', '--', '--webroot', webroot], {
   cwd: api,
-  stdio: 'inherit',
+  // API 不讀 stdin，改接 /dev/null，避免持有 Playwright 的管道。
+  stdio: ['ignore', 'inherit', 'inherit'],
   env: {
     ...process.env,
     ASPNETCORE_ENVIRONMENT: 'Production',
@@ -49,7 +50,10 @@ const server = spawn('dotnet', ['run', '--no-launch-profile', '--', '--webroot',
 });
 
 // 收到中斷、終止或終端機關閉訊號時先停止 API，待其結束後再清除並退出。
+let stopping = false;
+
 function stop() {
+  stopping = true;
   if (server.exitCode === null) server.kill('SIGTERM');
   else process.exit(0);
 }
@@ -57,4 +61,20 @@ function stop() {
 server.on('exit', code => process.exit(code ?? 0));
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
   process.on(signal, stop);
+}
+
+// Playwright 讓 webServer 在獨立 session 執行，關閉終端機時這裡收不到 SIGHUP；
+// 但 Playwright 結束時會關閉給我們的 stdin 管道，以此作為停止訊號。
+// 只在 stdin 是管道或 socket 時啟用，從終端機或 /dev/null 執行時不受影響。
+const stdin = fstatSync(0);
+if (stdin.isFIFO() || stdin.isSocket()) {
+  // 只有在尚未因訊號停止時才記錄原因：正常 teardown 會先收到 SIGTERM 再關閉管道，不必多印；
+  // 管道一開始就關閉或啟動者異常結束時則留下一行說明，避免無聲退出難以排查。
+  const stopOnClosedInput = () => {
+    if (!stopping) console.error('serve.mjs：stdin 已關閉（啟動者已結束），停止 API。');
+    stop();
+  };
+  process.stdin.on('end', stopOnClosedInput);
+  process.stdin.on('error', stopOnClosedInput);
+  process.stdin.resume();
 }
