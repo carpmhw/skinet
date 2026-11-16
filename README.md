@@ -229,7 +229,7 @@ docker build -t skinet:local -f Dockerfile .
 
 冒煙測試會檢查 `/`、`/shop`、`/shop/1`、`/cart`、`/api/products`、`/images/products/*`、不存在的 `/api` 路由，以及容器重建後 SQLite 是否透過 Volume 標記保持持久化。HTML fallback 檢查不等同於瀏覽器的購物車操作驗收。
 
-`npm run e2e:browser` 會先產生正式建置，再由 Playwright（`@playwright/test` 1.65.1、Chromium revision 1255）啟動實際 API。前端與商品圖片放在暫存 webroot，資料庫使用暫存 SQLite，結束或中斷時清除，不寫入 `API/wwwroot` 或 repo 內的資料庫。目前涵蓋價格篩選：Enter 送出、錯誤焦點、非法網址阻擋、分頁／詳情／上一頁保留、Tab 順序與 375px 無水平溢出；非法價格網址會確認不送出商品請求、不搶焦點。只驗證 DOM 的 aria 與焦點，不代表讀屏實際朗讀；未納入 CI。
+`npm run e2e:browser` 會先產生正式建置，再由 Playwright（`@playwright/test` 1.65.1、Chromium revision 1255）啟動實際 API。前端與商品圖片放在暫存 webroot，資料庫使用暫存 SQLite，結束或中斷時清除，不寫入 `API/wwwroot` 或 repo 內的資料庫。目前涵蓋價格篩選：Enter 送出、錯誤焦點、非法網址阻擋、分頁／詳情／上一頁保留、Tab 順序與 375px 無水平溢出；非法價格網址會確認不送出商品請求、不搶焦點。選品工具涵蓋：收藏、最近瀏覽、購物車重新整理後保留，移除或清除後清空；購物車數量與小數金額計算；比較最多3件、依選取順序排列、重新整理後清空且不寫入 storage；375px 四頁無水平溢出、比較表格可用方向鍵橫向捲動（這兩項只在 375px 的 mobile project 執行）。直接執行 `npx playwright test` 不會重新建置，可能測到舊的 `dist`，請透過 `npm run e2e:browser` 執行。儲存失敗、資料毀損、商品下架與多分頁同步只有單元測試。只驗證 DOM 的 aria 與焦點，不代表讀屏實際朗讀；未納入 CI。
 
 ### 購物車的保存與價格
 

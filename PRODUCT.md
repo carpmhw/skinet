@@ -43,15 +43,17 @@ SkiNet 目前提供商品瀏覽、搜尋、篩選、排序、分頁、詳情、�
 
 ## Evidence on Hand
 
-既有 `client/src/app/shop/`、`client/src/app/nav-bar/`、`client/src/styles.scss` 與 `README.md`。購物車位於 `client/src/app/cart/`；本機元件與 service 測試、正式建置與容器測試已執行，實際瀏覽器視覺及讀屏驗收尚未執行。
+既有 `client/src/app/shop/`、`client/src/app/nav-bar/`、`client/src/styles.scss` 與 `README.md`。購物車位於 `client/src/app/cart/`；本機元件與 service 測試、正式建置與容器測試已執行；2026-11-16 起瀏覽器回歸測試涵蓋購物車流程（見下方瀏覽器測試段落），視覺細節與讀屏驗收尚未執行。
 
-收藏位於 `client/src/app/favorites/`；本機Angular測試90項、代理測試82項、lint／typecheck／正式建置及獨立程式碼審查已執行。收藏頁的真實瀏覽器375px／桌面、原生鍵盤及讀屏驗收尚未執行，未部署本次收藏功能。
+收藏位於 `client/src/app/favorites/`；本機Angular測試90項、代理測試82項、lint／typecheck／正式建置及獨立程式碼審查已執行。重新整理保留、移除與375px無水平溢出已於2026-11-16由瀏覽器測試驗證；桌面版排版細節、原生鍵盤操作及讀屏驗收尚未執行，未部署本次收藏功能。
 
-最近瀏覽位於 `client/src/app/recently-viewed/`；本機Angular123項、代理82項、lint／typecheck／正式建置及獨立程式碼審查通過（lint無錯誤，11項standalone警告）。完整紀錄見 `docs/superpowers/plans/2026-11-14-recently-viewed.md`。本次未部署；真實瀏覽器375px／桌面、原生鍵盤及讀屏驗收尚未執行。可選延期改善：清除儲存失敗後的頁內重試入口。
+最近瀏覽位於 `client/src/app/recently-viewed/`；本機Angular123項、代理82項、lint／typecheck／正式建置及獨立程式碼審查通過（lint無錯誤，11項standalone警告）。完整紀錄見 `docs/superpowers/plans/2026-11-14-recently-viewed.md`。本次未部署；最新在前、重新整理保留、清除與375px無水平溢出已於2026-11-16由瀏覽器測試驗證，桌面版排版細節、原生鍵盤操作及讀屏驗收尚未執行。可選延期改善：清除儲存失敗後的頁內重試入口。
 
-比較位於 `client/src/app/comparison/`；本機Angular149項、代理82項、兩套lint／proxy typecheck／正式建置及獨立程式碼審查通過（lint無錯誤，13項standalone警告：11既有、2新增NgModule元件）。紀錄見 `docs/superpowers/plans/2026-11-15-product-comparison.md`。本次未部署；375px／桌面實際排版、五項導覽換行、整頁溢出與sticky、表格原生鍵盤捲動與讀屏驗收尚未執行。
+比較位於 `client/src/app/comparison/`；本機Angular149項、代理82項、兩套lint／proxy typecheck／正式建置及獨立程式碼審查通過（lint無錯誤，13項standalone警告：11既有、2新增NgModule元件）。紀錄見 `docs/superpowers/plans/2026-11-15-product-comparison.md`。本次未部署；3件上限、選取順序、重新整理清空且不寫storage、375px整頁無溢出及表格方向鍵捲動已於2026-11-16由瀏覽器測試驗證；桌面版排版、五項導覽換行、sticky與讀屏驗收尚未執行。
 
-價格篩選位於既有shop與商品API；本機API67項、Angular197項、代理84項、兩套lint／proxy typecheck／正式建置通過（lint無錯誤，13項既有standalone警告）。一次獨立審查發現的Important已以4個紅→綠案例修復：延遲品牌／類型校正失效ID不再清掉價格草稿與錯誤。原延期Minor（手動收合後未必重新展開）已於2026-11-16以原生toggle同步修復。紀錄見 `docs/superpowers/plans/2026-11-15-price-range-filter.md`；未部署。2026-11-16起以 `npm run e2e:browser`（Playwright 1.65.1／Chromium 1255，實際API＋暫存SQLite）在桌面1280px與375px驗證價格流程、Enter／Tab、歷史導航及無水平溢出；讀屏朗讀、正式站與其他功能的瀏覽器流程仍NOT RUN。紀錄見 `docs/superpowers/plans/2026-11-16-browser-e2e.md`。
+價格篩選位於既有shop與商品API；本機API67項、Angular197項、代理84項、兩套lint／proxy typecheck／正式建置通過（lint無錯誤，13項既有standalone警告）。一次獨立審查發現的Important已以4個紅→綠案例修復：延遲品牌／類型校正失效ID不再清掉價格草稿與錯誤。原延期Minor（手動收合後未必重新展開）已於2026-11-16以原生toggle同步修復。紀錄見 `docs/superpowers/plans/2026-11-15-price-range-filter.md`；未部署。
+
+瀏覽器測試：2026-11-16起以 `npm run e2e:browser`（Playwright 1.65.1／Chromium 1255，實際API＋暫存SQLite）在桌面1280px與375px驗證價格流程、Enter／Tab、歷史導航及無水平溢出（紀錄見 `docs/superpowers/plans/2026-11-16-browser-e2e.md`）；同日補上收藏、最近瀏覽、比較、購物車的瀏覽器流程：重新整理保留／清空、導覽計數、比較3件上限且不寫storage、購物車小數金額，以及375px四頁無溢出與比較表格鍵盤捲動（紀錄見 `docs/superpowers/plans/2026-11-16-shopping-tools-e2e.md`）。讀屏朗讀、正式站、儲存失敗與商品下架等錯誤注入情境的瀏覽器流程仍NOT RUN。
 
 ## Approved Cart Rules
 
